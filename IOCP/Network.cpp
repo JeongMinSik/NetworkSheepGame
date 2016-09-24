@@ -9,6 +9,7 @@ SOCKETINFO::SOCKETINFO()
 	sock = NULL;
 	optype = OP_TYPE::OP_RECV;
 	iCurrPacketSize = iStoredPacketSize = 0;
+	isReady = false;
 
 }
 
@@ -22,6 +23,7 @@ CNetwork::CNetwork()
 	m_listenSock = NULL;
 	m_hIOCP = NULL;
 	m_nID = 0;
+	m_nReadyCount = 0;
 }
 
 
@@ -152,7 +154,7 @@ bool CNetwork::acceptThread()
 		pSocketInfo->nID = m_nID;
 
 		m_vpClientInfo[m_nID++] = pSocketInfo;
-		cout << "[시스템] " << pSocketInfo->nID << "번 클라 접속! IP주소:" << inet_ntoa(clientAddr.sin_addr) << ", 포트번호:" << ntohs(clientAddr.sin_port) << endl;
+		//cout << "[시스템] " << pSocketInfo->nID << "번 클라 접속! IP주소:" << inet_ntoa(clientAddr.sin_addr) << ", 포트번호:" << ntohs(clientAddr.sin_port) << endl;
 
 		// 소켓과 입출력 완료 포트 연결
 		CreateIoCompletionPort((HANDLE)clientSock, m_hIOCP, pSocketInfo->nID, 0);	//핸들, 포트, 키값, 최대스레드(의미x)
@@ -185,7 +187,7 @@ void CNetwork::workerThread()
 
 		// 접속 종료 처리
 		if (0 == IOsize){
-			Logout(nullptr, key);
+			Logout(key);
 			continue;
 		}
 		
@@ -213,7 +215,7 @@ void CNetwork::workerThread()
 					
 					// 패킷처리
 					if (!packetProcess(sockInfo->packetBuf, key)){
-						Logout(nullptr, key);
+						Logout(key);
 						continue;
 					}
 
@@ -263,7 +265,10 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 		issuccess = Login(id);
 		break;
 	case PAK_RMV:
-		issuccess = Logout(buf, id);
+		issuccess = Logout(id);
+		break;
+	case PAK_READY:
+		issuccess = Ready(id);
 		break;
 	}
 	return issuccess;
@@ -276,6 +281,8 @@ bool CNetwork::Login(int id)
 	pData->header.ucSize = sizeof(SC_LOG_INOUT);
 	pData->header.byPacketID = PAK_LOGIN;
 	pData->ID = id;
+	pData->clientNum = m_nID;
+	pData->readyCount = m_nReadyCount;
 	
 	// 아이디번호 부여
 	transmitProcess(sendData, id);
@@ -283,16 +290,25 @@ bool CNetwork::Login(int id)
 	// 다른 플레이어에게 접속 사실을 알림
 	pData->header.byPacketID = PAK_REG;
 	for (auto client : m_vpClientInfo) {
-		if (client) {
+		if (client && client->nID != id) {
 			transmitProcess(sendData, client->nID);
 		}
 	}
 
+	cout << "[시스템] " << id << "번 클라이언트 접속!" << endl;
+	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+
 	return true;
 }
 
-bool CNetwork::Logout(void * buf, int id)
+bool CNetwork::Logout(int id)
 {
+	// 레디상태 해제
+	if (m_vpClientInfo[id]->isReady) {
+		m_vpClientInfo[id]->isReady = false;
+		--m_nReadyCount;
+	}
+
 	// 소켓을 닫는다.
 	closesocket(m_vpClientInfo[id]->sock);
 	delete  m_vpClientInfo[id];
@@ -304,6 +320,8 @@ bool CNetwork::Logout(void * buf, int id)
 	pData->header.ucSize = sizeof(SC_LOG_INOUT);
 	pData->header.byPacketID = PAK_RMV;
 	pData->ID = id;
+	pData->clientNum = m_nID;
+	pData->readyCount = m_nReadyCount;
 
 	for (auto &data : m_vpClientInfo){
 		if (data){
@@ -312,6 +330,30 @@ bool CNetwork::Logout(void * buf, int id)
 	}
 
 	cout << "[시스템] " << id << "번 클라이언트 접속 종료!" << endl;
+	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+
+	return true;
+}
+
+bool CNetwork::Ready(int id)
+{
+	m_vpClientInfo[id]->isReady = true;
+	++m_nReadyCount;
+
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
+	pData->header.ucSize = sizeof(SC_LOG_INOUT);
+	pData->header.byPacketID = PAK_READY;
+	pData->clientNum = m_nID;
+	pData->readyCount = m_nReadyCount;
+
+	for (auto &data : m_vpClientInfo) {
+		if (data) {
+			transmitProcess(sendData, data->nID);
+		}
+	}
+
+	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
 
 	return true;
 }

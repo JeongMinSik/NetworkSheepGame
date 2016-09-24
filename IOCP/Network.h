@@ -15,11 +15,14 @@ struct SOCKETINFO
 	WSABUF wsabuf;
 	SOCKET sock;
 	OP_TYPE optype = OP_TYPE::OP_RECV;
-	int nID;
 	char IOBuf[MAX_PACKET_SIZE];
 	char packetBuf[MAX_PACKET_SIZE];
 	int	 iCurrPacketSize; 
 	int	 iStoredPacketSize;
+
+	//정보
+	int nID;
+	bool isReady;
 
 	SOCKETINFO();
 	~SOCKETINFO();
@@ -31,8 +34,10 @@ class CNetwork
 	vector<SOCKETINFO*>				m_vpClientInfo;
 	SOCKET							m_listenSock;
 	HANDLE							m_hIOCP;
-	UINT							m_nID;
 	mutex							m_lock;
+	
+	UINT							m_nID;
+	UINT							m_nReadyCount;
 public:
 
 	CNetwork();
@@ -53,7 +58,8 @@ public:
 	//패킷 처리 함수
 	bool packetProcess(CHAR*, int);
 	bool Login(int id);
-	bool Logout(void *buf, int id);
+	bool Logout(int id);
+	bool Ready(int id);
 	bool syncData(void *buf, int id);
 	void transmitProcess(void * buf, int id);
 

@@ -20,5 +20,8 @@ public:
 	void endServer();
 	void recvThreadFunc();
 	void packetUnpacker();
+	void keyDown(char);
+	void keyUp(char);
+	void getReady();
 };
 

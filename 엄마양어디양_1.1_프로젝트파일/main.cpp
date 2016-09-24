@@ -1,16 +1,7 @@
-#include "inc/fmod.hpp"
 #include "Network.h"
+#include "stdafx.h"
 
 CNetwork NetworkManager;
-
-// 단위는 밀리세컨드, FPS 62.5
-#define FIXED_FRAME_TIME	16   // 최저프레임시간
-#define MAX_FRAME_TIME		250  // 뻗는 걸 막기 위한 최대프레임시간
-#define DELTA_TIME			10.0	 // 쪼개서 계산할 단위
-
-#pragma comment (lib, "fmodex_vc.lib")
-using namespace FMOD;
-using namespace std;
 
 
 // 함수선언
@@ -22,16 +13,7 @@ GLvoid SpecialKeyboardUp(int, int, int);
 GLvoid Reshape(int, int);
 GLubyte * LoadDIBitmap(const char *, BITMAPINFO **);
 void CreateWorld();
-void DestroyWorld();
-
-enum { MAIN_MODE, PLAY_MODE, PAUSE_MODE, GAME_OVER, ENDING_MODE }; // 게임상태
-enum { DOWN_VIEW, FRONT_VIEW }; //카메라 시점
-enum { STOP_STATE, LEFT_STATE, RIGHT_STATE, UP_STATE, DOWN_STATE, JUMP_UP_STATE, JUMP_DOWN_STATE, GRAVITY }; //이동 상태
-enum { SHEEP, BOX, SCISSORS, PUMKIN, BRICK, HAY, BLACK_SHEEP, BOXWALL }; // 객체 타입
-enum { BOX_FRONT, BOX_TOP, GROUND_FRONT, GROUND_TOP, BACK_GROUND, BRICK_FRONT, BRICK_TOP, HAY_FRONT, HAY_TOP, BOXWALL_FRONT, BOXWALL_TOP, ESC_BUTTON, MENU_0, MENU_1, MENU_2, MAIN_0, MAIN_1, MAIN_2, MAIN_3, DEAD_0, DEAD_1, HELP_0, HELP_1, ENDING_0, ENDING_1, ENDING_MENU_0, ENDING_MENU_1 }; // 텍스쳐 종류 (1)
-enum { MAIN_BGM, GAME_BGM, JUMP_E, KILL_E, CRY_E, BUTTON_MOVE_E, BUTTON_OK_E, GET_HURT_E, CAMERA_E, CLEAR_BGM }; // 사운드
-
-																												
+void DestroyWorld();																							
 
 //텍스쳐 관련 변수
 GLubyte *pBytes = nullptr; // 데이터를 가리킬 포인터
@@ -59,6 +41,7 @@ int ob_num = 0;
 int Game_Mode = MAIN_MODE;
 #define ENDING_X 9500
 
+
 struct Camera {
 	float x, y, z;
 	int canvas_size;
@@ -67,7 +50,7 @@ struct Camera {
 	bool is_changing;
 	Camera()
 	{
-		x = 9500; y = 100;
+		x = 0; y = 100;
 		canvas_size = 200;
 		view_radius = 0;
 		view_point = FRONT_VIEW;
@@ -433,7 +416,7 @@ struct Sheep : public Object {
 		glColor3f(1, 1, 1);
 
 		//무적애니메이션
-		if (is_invincible){
+		if (is_invincible) {
 			if (cur_invicible_time % 20 == 0) {
 				glColor3f(1, 0, 0);
 			}
@@ -599,10 +582,10 @@ struct Sheep : public Object {
 		}
 
 		//무적상태
-		if (is_invincible){
+		if (is_invincible) {
 			(cur_invicible_time % 20) ? camera->canvas_size += 0.4*DELTA_TIME : camera->canvas_size -= 0.4 * DELTA_TIME;
 			cur_invicible_time += DELTA_TIME;
-			if (cur_invicible_time >= max_invicible_time){
+			if (cur_invicible_time >= max_invicible_time) {
 				is_invincible = false;
 				is_under = false;
 				cur_invicible_time = 0;
@@ -610,7 +593,7 @@ struct Sheep : public Object {
 		}
 
 		//스탠딩 상태
-		if (stading_index >= 0){
+		if (stading_index >= 0) {
 
 			// 추가 이동속도 변경
 			if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
@@ -665,7 +648,7 @@ struct Sheep : public Object {
 		}
 
 		float back_distance; // 충돌 시 되돌아오는 거리값
-		// 기본이동 및 충돌체크
+							 // 기본이동 및 충돌체크
 		if (state[RIGHT_STATE])
 		{
 			x += speed + x_additional_speed; camera->x += speed + x_additional_speed;
@@ -1746,7 +1729,7 @@ struct Black_Sheep : public Object {
 		}
 		else
 		{
-			wait_time+=DELTA_TIME;
+			wait_time += DELTA_TIME;
 			if (wait_time > 1000)
 			{
 				ouch = 0;
@@ -1905,8 +1888,6 @@ struct Ui {
 	int ending_screen = 0;
 	Ui(int size) : canvas_size(size), selected_menu(0), heart_size(0.5), heart_dir(1), presskey(false), help(0) {
 
-		printf("ui 객체 생성...\n");
-
 		for (int i = 0; i < 2; ++i)
 			key_delay[i] = 0;
 	}
@@ -1945,13 +1926,15 @@ struct Ui {
 				FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
 				if (presskey == false)
 				{
-
+					FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
+					presskey = true;
 				}
 				else if (selected_menu == 0)
 				{
+					NetworkManager.getReady();
 					//게임시작
 					CreateWorld();
-					Game_Mode = PLAY_MODE;
+					Game_Mode = READY_MODE;
 					FMOD_Channel_Stop(g_Channel[MAIN_BGM]);
 					FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[GAME_BGM], 0, &g_Channel[GAME_BGM]);
 					FMOD_Channel_SetVolume(g_Channel[GAME_BGM], GAME_BGM_VOLUME);
@@ -2145,14 +2128,14 @@ struct Ui {
 					glColor3f(1, 1, 1);
 					if (x > -150)
 					{
-						x -= DELTA_TIME*0.1; 
+						x -= DELTA_TIME*0.1;
 						y -= DELTA_TIME*0.1;
 						width += 0.2 * DELTA_TIME;
 						height += 0.2 * DELTA_TIME;
 					}
 					else if (ending_screen != 3)
 					{
-						time+=DELTA_TIME;
+						time += DELTA_TIME;
 						if (time % 200 == 0)
 						{
 							ending_screen = (ending_screen + 1) % 2;
@@ -2307,10 +2290,10 @@ struct Ui {
 		else if (heart_size < 0.5) { heart_dir = +1; } // 하트 최소 크기
 	}
 };
+
+
 void SetSound()
 {
-	printf("사운드 설정...\n");
-
 	FMOD_System_Create(&g_System);
 	FMOD_System_Init(g_System, SOUND_COUNT, FMOD_INIT_NORMAL, NULL);
 	FMOD_System_CreateSound(g_System, "./SOUND/main_bgm.mp3", FMOD_LOOP_NORMAL, 0, &g_Sound[MAIN_BGM]);
@@ -2331,7 +2314,6 @@ void SetSound()
 }
 void SetTextures()
 {
-	printf("텍스쳐 설정...\n");
 
 	//n개의 이미지 텍스처 매핑을 한다.
 	glGenTextures(TEXTURES_COUNT - 1, textures);
@@ -2492,9 +2474,6 @@ void SetTextures()
 }
 void CreateWorld()
 {
-
-	printf("월드 생성...\n");
-
 	// 기본 객체
 	camera = new Camera();
 	ground[0] = new Ground(-200, -100, -100); // z축 -100~300
@@ -2556,8 +2535,6 @@ void CreateWorld()
 }
 void DestroyWorld() {
 
-	printf("월드 소멸...\n");
-
 	delete camera;
 	for (auto g : ground)
 		delete g;
@@ -2569,8 +2546,6 @@ void DestroyWorld() {
 }
 void Program_Exit()
 {
-
-	printf("프로그램 종료...\n");
 
 	delete ui;
 	for (int i = 0; i < SOUND_COUNT; ++i)
@@ -2647,8 +2622,6 @@ GLvoid updateScene(int value)
 		switch (Game_Mode)
 		{
 		case PLAY_MODE:
-
-			printf("x:%f \n", sheep->x);
 
 			//카메라 업데이트
 			if(!sheep->killed)

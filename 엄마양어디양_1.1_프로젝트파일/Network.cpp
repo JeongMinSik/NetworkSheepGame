@@ -21,6 +21,7 @@ void CNetwork::err_quit(char *msg)
 		(LPTSTR)&lpMsgBuf, 0, NULL);
 	//MessageBox(NULL, (LPCTSTR)lpMsgBuf, msg, MB_ICONERROR);
 	printf("[%s] %s", msg, (char *)lpMsgBuf);
+	exit(0);
 }
 
 void CNetwork::err_display(char * msg)
@@ -153,23 +154,33 @@ void CNetwork::packetUnpacker()
 		SC_LOG_INOUT login;
 		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
 		m_nID = login.ID;
-		cout << "부여받은 아이디는 " << m_nID << "번 \n";
+		//printf("접속했습니다. 부여받은 아이디는 %d입니다. \n",m_nID);
+		printf("접속했습니다. \n");
+		printf("레디 / 총 접속: ( %d / %d ) \n", login.readyCount, login.clientNum);
 		break;
 	}
 	case PAK_REG:
 	{
 		SC_LOG_INOUT login;
 		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
-		m_nID = login.ID;
-		cout << "신규 접속 아이디는 " << m_nID << "번 \n";
+		printf("%d번 클라가 접속했습니다. \n",login.ID);
+		printf("레디 / 총 접속: ( %d / %d ) \n", login.readyCount, login.clientNum);
 		break;
 	}
 	case PAK_RMV:
 	{
-		SC_LOG_INOUT login;
-		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
-		m_nID = login.ID;
-		cout << "로그아웃 아이디는 " << m_nID << "번 \n";
+		SC_LOG_INOUT logout;
+		memcpy(&logout, m_saveBuf, sizeof(SC_LOG_INOUT));
+		printf("%d번 클라가 로그아웃했습니다. \n", logout.ID);
+		printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
+		break;
+	}
+	case PAK_READY:
+	{
+		SC_LOG_INOUT ready;
+		memcpy(&ready, m_saveBuf, sizeof(SC_LOG_INOUT));
+		printf("%d번 클라 준비완료! \n", ready.ID);
+		printf("레디 / 총 접속: ( %d / %d ) \n", ready.readyCount, ready.clientNum);
 		break;
 	}
 	default:
@@ -179,4 +190,25 @@ void CNetwork::packetUnpacker()
 	m_nLeft -= m_saveBuf[0];
 	memmove(m_saveBuf, m_saveBuf + m_saveBuf[0], m_nLeft);
 
+}
+
+void CNetwork::keyDown(char)
+{
+}
+
+void CNetwork::keyUp(char)
+{
+}
+
+void CNetwork::getReady()
+{
+	char sendData[MAX_PACKET_SIZE] = { 0 };
+	HEADER *pData = (HEADER*)sendData;
+	pData->ucSize = sizeof(HEADER);
+	pData->byPacketID = PAK_READY;
+
+	int retval = send(m_socket, sendData, sizeof(HEADER), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
 }
