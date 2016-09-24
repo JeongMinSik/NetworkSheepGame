@@ -2,7 +2,6 @@
 #include "stdafx.h"
 #include "Objects.h"
 
-CNetwork NetworkManager;
 
 // 함수선언
 GLvoid updateScene(int);
@@ -27,10 +26,11 @@ FMOD_SOUND *g_Sound[SOUND_COUNT];
 FMOD_CHANNEL *g_Channel[SOUND_COUNT];
 
 //객체 포인터 생성
+CNetwork NetworkManager;
 Ui* ui;
-Camera* camera;
+Camera *mainCamera;
+Sheep *mainSheep;
 Ground* ground[GROUND_NUM];
-Sheep* sheep;
 Object* obstacles[500];
 MotherSheep* mother_sheep;
 int ob_num = 0;
@@ -223,9 +223,13 @@ void SetTextures()
 }
 void CreateWorld()
 {
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		NetworkManager.m_Players[i].m_pSheep->setSound(pSoundPackage);
+	}
+	mainSheep = NetworkManager.m_Players[0].m_pSheep;
+	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
 	// 기본 객체
-	camera = new Camera();
-	camera->pSound = pSoundPackage;
+	
 	ground[0] = new Ground(-200, -100, -100); // z축 -100~300
 	ground[0]->pTextures = textures;
 	for (int i = 1; i < GROUND_NUM; ++i)
@@ -233,10 +237,7 @@ void CreateWorld()
 		ground[i] = new Ground(ground[0]->x + ground[0]->width*i, ground[0]->y, ground[0]->z);
 		ground[i]->pTextures = textures;
 	}
-	sheep = new Sheep(SHEEP, camera->x, 0, -30, 9);
-	sheep->pGameMode = &Game_Mode;
-	sheep->pSound = pSoundPackage;
-	sheep->pCamera = camera;
+
 	mother_sheep = new MotherSheep();
 
 	// 파일 입력
@@ -272,12 +273,13 @@ void CreateWorld()
 			break;
 		}
 		obstacles[ob_num]->pTextures = textures;
-		obstacles[ob_num]->pCamera = camera;
+		obstacles[ob_num]->pCamera = mainCamera;
 		++ob_num;
 	}
 	fin.close();
 
-	sheep->obCnt = ob_num;
+	mainSheep->obCnt = ob_num;
+	NetworkManager.m_ppObstacles = obstacles;
 
 	/*
 	객체배열 파일출력
@@ -294,10 +296,8 @@ void CreateWorld()
 }
 void DestroyWorld() {
 
-	delete camera;
 	for (auto g : ground)
 		delete g;
-	delete sheep;
 	delete mother_sheep;
 	for (int i = 0; i < ob_num; ++i)
 		delete obstacles[i];
@@ -317,10 +317,8 @@ void Program_Exit()
 
 	if (ob_num)
 	{
-		delete camera;
 		for (auto g : ground)
 			delete g;
-		delete sheep;
 		for (int i = 0; i < ob_num; ++i)
 			delete obstacles[i];
 	}
@@ -388,31 +386,41 @@ GLvoid updateScene(int value)
 		case PLAY_MODE:
 
 			//카메라 업데이트
-			if(!sheep->killed)
-				camera->update();
+			for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
+				auto sheep = NetworkManager.m_Players[i].m_pSheep;
+				if (!sheep->killed) {
+					sheep->pCamera->update();
+				}
+			}
+			//if(!mainSheep->killed)
+			//	mainCamera->update();
+
 			//객체 업데이트 (+스탠딩 상태 확인)
-			sheep->stading_index = -1;
+			mainSheep->stading_index = -1;
 			for (int i = 0; i < ob_num; ++i) {
 
-				if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
-					sheep->stading_index = i;
+				if (mainSheep->stading_index == -1 && obstacles[i]->is_standing(mainSheep)) {
+					mainSheep->stading_index = i;
 				}
 
 				if (obstacles[i]->type == BLACK_SHEEP) {
-					obstacles[i]->update2(sheep, obstacles);
+					obstacles[i]->update2(mainSheep, obstacles);
 				}
 				else {
-					obstacles[i]->update1(sheep);
+					obstacles[i]->update1(mainSheep);
 				}
 			}
 			//양 업데이트
-			sheep->update2(ground[0], obstacles);
+			for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
+				NetworkManager.m_Players[i].m_pSheep->update2(ground[0],obstacles);
+			}
+			//mainSheep->update2(ground[0], obstacles);
 			break;
 		case GAME_OVER:
-			sheep->dead_update();
+			mainSheep->dead_update();
 			break;
 		case ENDING_MODE:
-			sheep->ending_update();
+			mainSheep->ending_update();
 			break;
 		}
 
@@ -432,12 +440,12 @@ GLvoid drawScene(GLvoid)
 	glPushMatrix();
 
 	// UI
-	ui->draw(sheep);
+	ui->draw(mainSheep);
 
 	if (Game_Mode != MAIN_MODE)
 	{
 		////카메라 설정
-		camera->setting();
+		mainCamera->setting();
 
 		//바닥
 		for (auto g : ground)
@@ -445,7 +453,10 @@ GLvoid drawScene(GLvoid)
 			g->draw();
 		}
 		//양
-		sheep->draw();
+		//mainSheep->draw();
+		for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
+			NetworkManager.m_Players[i].m_pSheep->draw();
+		}
 		//바운딩박스(양)
 		//sheep->test_draw();
 		//printf("x:%d, y:%d, z:%d \n", sheep->x, sheep->y, sheep->z);
@@ -467,9 +478,10 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	if (Game_Mode == PLAY_MODE)
 	{
-		camera->keyboard(key);
+		mainCamera->keyboard(key);
+		NetworkManager.keyDown(key);
 	}
-	int retval = ui->keyboard(key, sheep);
+	int retval = ui->keyboard(key, mainSheep);
 
 	switch (retval) {
 	case READY_MODE:
@@ -483,7 +495,7 @@ GLvoid SpecialKeyboard(int key, int x, int y)
 {
 	ui->special_key(key);
 	if (Game_Mode == PLAY_MODE) {
-		sheep->special_key(key, obstacles);
+		mainSheep->special_key(key, obstacles);
 		NetworkManager.keyDown(key);
 	}
 }
@@ -491,7 +503,7 @@ GLvoid SpecialKeyboard(int key, int x, int y)
 GLvoid SpecialKeyboardUp(int key, int x, int y)
 {
 	if (Game_Mode == PLAY_MODE) {
-		sheep->special_key_up(key);
+		mainSheep->special_key_up(key);
 		NetworkManager.keyUp(key);
 	}
 }

@@ -344,15 +344,17 @@ bool CNetwork::Ready(int id)
 	m_vpClientInfo[id]->isReady = true;
 	++m_nReadyCount;
 
-	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	if (m_nReadyCount >= MAX_PLAYER_CNT) {
+		return CNetwork::Start();
+	}
 
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
 	pData->header.ucSize = sizeof(SC_LOG_INOUT);
 	pData->header.byPacketID = PAK_READY;
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
 
-	pData->header.byPacketID = (m_nReadyCount < MAX_READY_CNT) ? PAK_READY : PAK_START;
 	for (auto &data : m_vpClientInfo) {
 		if (data) {
 			transmitProcess(sendData, data->nID);
@@ -360,6 +362,27 @@ bool CNetwork::Ready(int id)
 	}
 
 	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+
+	return true;
+}
+
+bool CNetwork::Start()
+{
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_START *pData = (SC_START*)sendData;
+	pData->header.ucSize = sizeof(SC_START);
+	pData->header.byPacketID = PAK_START;
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i){
+		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
+	}
+
+	for (auto &data : m_vpClientInfo) {
+		if (data) {
+			transmitProcess(sendData, data->nID);
+		}
+	}
+
+	printf("게임 시작! \n");
 
 	return true;
 }

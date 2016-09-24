@@ -54,12 +54,11 @@ void Camera::update()
 	}
 
 
-
 Ground::Ground(float x, float y, float z) :x(x), y(y), z(z), width(1000), height(100), depth(400) {
 	back_height = 300;
 }
-	Ground::~Ground() { }
-	void Ground::draw() {
+Ground::~Ground() { }
+void Ground::draw() {
 		glColor3f(1, 1, 1);
 
 		glEnable(GL_TEXTURE_2D);
@@ -137,7 +136,6 @@ Ground::Ground(float x, float y, float z) :x(x), y(y), z(z), width(1000), height
 	}
 
 
-
 Object::Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*DELTA_TIME*0.03), max_x(m_x), max_y(m_y), max_z(m_z) {}
 bool Object::AABB(const Object* other)
 {
@@ -180,6 +178,7 @@ void Object::test_draw()
 	glPopMatrix();
 }
 
+
 Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 35, sp) {
 	jump_height = 100;
 	minus_height = 0;
@@ -193,8 +192,10 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 	for (int i = 0; i < 8; ++i)
 		state[i] = false;
 }
-	Sheep::~Sheep() {  }
-	void Sheep::get_hurt()
+Sheep::~Sheep() { 
+	delete pCamera;
+}
+void Sheep::get_hurt()
 	{
 		is_invincible = true;
 		--life;
@@ -209,7 +210,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GET_HURT_E], 0, &pSound->Channel[GET_HURT_E]);
 		}
 	}
-	void Sheep::dead_update()
+void Sheep::dead_update()
 	{
 		pCamera->is_changing = false;
 
@@ -226,7 +227,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 			}
 		}
 	}
-	void Sheep::ending_update()
+void Sheep::ending_update()
 	{
 
 		pCamera->is_changing = false;
@@ -289,7 +290,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		else if (jump_cnt == JUMP_MAX) { ending_finished = true; }
 
 	}
-	void Sheep::draw() 
+void Sheep::draw() 
 	{
 		glPushMatrix();
 		glTranslated((x + width / 2), (y + height / 2) + 5, z + depth / 2);
@@ -463,7 +464,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 
 		glPopMatrix();
 	}
-	void Sheep::update2(const Ground* ground, Object* obstacles[])
+void Sheep::update2(const Ground* ground, Object* obstacles[])
 	{
 		//엔딩
 		if (*pGameMode != ENDING_MODE && x > ENDING_X)
@@ -881,34 +882,34 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		else if (y == 0) state[GRAVITY] = false;
 
 	}
-	void Sheep::special_key(int key, Object* obstacles[])
-	{
-		if (key == GLUT_KEY_RIGHT) {
-			state[RIGHT_STATE] = true;
+void Sheep::special_key(int key, Object* obstacles[])
+{
+	if (key == GLUT_KEY_RIGHT) {
+		state[RIGHT_STATE] = true;
+	}
+	else if (key == GLUT_KEY_LEFT) {
+		state[LEFT_STATE] = true;
+	}
+	else if (key == GLUT_KEY_UP) {
+		if (pCamera->view_point == DOWN_VIEW)
+		{
+			state[UP_STATE] = true;
 		}
-		else if (key == GLUT_KEY_LEFT) {
-			state[LEFT_STATE] = true;
-		}
-		else if (key == GLUT_KEY_UP) {
-			if (pCamera->view_point == DOWN_VIEW)
-			{
-				state[UP_STATE] = true;
-			}
-			else if (pCamera->view_point == FRONT_VIEW && state[JUMP_DOWN_STATE] == false && state[JUMP_UP_STATE] == false && state[GRAVITY] == false && *pGameMode == PLAY_MODE)
-			{
-				state[JUMP_UP_STATE] = true;
-				org_y = y;
-				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[JUMP_E], 0, &pSound->Channel[JUMP_E]);
-			}
-		}
-		else if (key == GLUT_KEY_DOWN) {
-			if (pCamera->view_point == DOWN_VIEW)
-			{
-				state[DOWN_STATE] = true;
-			}
+		else if (pCamera->view_point == FRONT_VIEW && state[JUMP_DOWN_STATE] == false && state[JUMP_UP_STATE] == false && state[GRAVITY] == false && *pGameMode == PLAY_MODE)
+		{
+			state[JUMP_UP_STATE] = true;
+			org_y = y;
+			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[JUMP_E], 0, &pSound->Channel[JUMP_E]);
 		}
 	}
-	void Sheep::special_key_up(int key)
+	else if (key == GLUT_KEY_DOWN) {
+		if (pCamera->view_point == DOWN_VIEW)
+		{
+			state[DOWN_STATE] = true;
+		}
+	}
+}
+void Sheep::special_key_up(int key)
 	{
 		if (key == GLUT_KEY_RIGHT) {
 			state[RIGHT_STATE] = false;
@@ -924,8 +925,14 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		}
 	}
 
+void Sheep::setSound(SoundPackage *sound)
+{
+	pSound = sound;
+	pCamera->pSound = sound;
+}
 
-	Box::Box(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 0, 0, 0, sp, m_x, m_y, m_z) {
+
+Box::Box(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 0, 0, 0, sp, m_x, m_y, m_z) {
 		if (type == BOX)
 		{
 			width = 70; height = 70; depth = 80;
@@ -950,8 +957,8 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		else if (max_z < 0) state_z = DOWN_STATE;
 		else state_z = STOP_STATE;
 	}
-	Box::~Box() {  }
-	void Box::draw()
+Box::~Box() {  }
+void Box::draw()
 	{
 		glColor3f(1, 1, 1);
 
@@ -1017,7 +1024,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		glVertex3f(x + width, y, z + depth);
 		glEnd();
 	}
-	bool Box::is_standing(const Object* other)
+bool Box::is_standing(const Object* other)
 	{
 		if (y + height != other->y) return false;
 		if (x + width <= other->x) return false;
@@ -1026,7 +1033,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		if (z >= other->z + other->depth) return false;
 		return true;
 	}
-	void Box::update1(Sheep* sheep)
+void Box::update1(Sheep* sheep)
 	{
 		if (state_x == RIGHT_STATE)
 		{
@@ -1109,7 +1116,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 	}
 
 
-	Scissors::Scissors(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 40, 8, 35, sp, m_x, m_y, m_z) {
+Scissors::Scissors(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 40, 8, 35, sp, m_x, m_y, m_z) {
 		max_x = m_x;	max_y = m_y;	max_z = m_z;
 		org_x = x;		org_y = y;		org_z = z;
 		Rotate_y = 0;
@@ -1121,8 +1128,8 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		else if (max_z < 0) state_z = DOWN_STATE;
 		else state_z = STOP_STATE;
 	}
-	Scissors::~Scissors() {  }
-	void Scissors::draw()
+Scissors::~Scissors() {  }
+void Scissors::draw()
 	{
 		glPushMatrix();
 		glTranslated((x + width / 2) + 28, (y + height / 2) + 12, z + depth / 2);
@@ -1216,7 +1223,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 
 		glPopMatrix();
 	}
-	void Scissors::update1(Sheep* sheep)
+void Scissors::update1(Sheep* sheep)
 	{
 		Rotate_y += scissor_rot;
 		if (Rotate_y >= 15)
@@ -1257,15 +1264,15 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 	}
 
 
-	Pumkin::Pumkin(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 50, 50, 50, sp, m_x, m_y, m_z) {
+Pumkin::Pumkin(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 50, 50, 50, sp, m_x, m_y, m_z) {
 		max_y = m_y;
 		org_y = y;
 		if (max_y > 0) state_y = JUMP_UP_STATE;
 		else if (max_y < 0) state_y = JUMP_DOWN_STATE;
 		else state_y = STOP_STATE;
 	}
-	Pumkin::~Pumkin() {  }
-	void Pumkin::draw() 
+Pumkin::~Pumkin() {  }
+void Pumkin::draw() 
 	{
 		glPushMatrix();
 		glTranslated((x + width / 2), (y + height / 2), z + depth / 2);
@@ -1306,7 +1313,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 
 		glPopMatrix();
 	}
-	void Pumkin::update1(Sheep* sheep)
+void Pumkin::update1(Sheep* sheep)
 	{
 		if (state_y == JUMP_UP_STATE)
 		{
@@ -1344,7 +1351,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 			}
 		}
 	}
-	bool Pumkin::is_standing(const Object* other)
+bool Pumkin::is_standing(const Object* other)
 	{
 		if (y + height != other->y) return false;
 		if (x + width <= other->x) return false;
@@ -1354,10 +1361,11 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 		return true;
 	}
 
+
 Hay::Hay(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 100, 70, 100, sp, m_x, m_y, m_z) {
 	}
 Hay::~Hay() {  }
-	bool Hay::AABB_surface(const Object* other) 
+bool Hay::AABB_surface(const Object* other) 
 	{
 		if (other->x + other->width <= x) return false;
 		if (other->x >= x + width) return false;
@@ -1368,7 +1376,7 @@ Hay::~Hay() {  }
 		if (other->z >= z && other->z + other->depth <= z + depth && other->y >= y && other->y + other->height <= y + height) return false;
 		return true;
 	}
-	bool Hay::is_inside(Sheep* sheep)
+bool Hay::is_inside(Sheep* sheep)
 	{
 		if (sheep->z >= z && sheep->z + sheep->depth <= z + depth &&
 			sheep->y >= y && sheep->y + sheep->height <= y + height &&
@@ -1381,7 +1389,7 @@ Hay::~Hay() {  }
 			return false;
 		}
 	}
-	void Hay::draw()
+void Hay::draw()
 	{
 		glColor3f(1, 1, 1);
 		//앞면
@@ -1445,7 +1453,6 @@ Hay::~Hay() {  }
 	}
 
 
-
 Black_Sheep::Black_Sheep(int t, float x, float y, float z, float sp = 0, int area_of_activity = 0, int none1 = 0, int none2 = 0) : Object(t, x, y, z, 55, 35, 55, sp, area_of_activity, none1, none2) {
 		org_x = x;
 		org_z = z;
@@ -1456,7 +1463,7 @@ Black_Sheep::Black_Sheep(int t, float x, float y, float z, float sp = 0, int are
 		wait_time = 11;
 	}
 Black_Sheep::~Black_Sheep() { }
-	void Black_Sheep::draw() 
+void Black_Sheep::draw() 
 	{
 		glPushMatrix();
 		glTranslated((x + width / 2), (y + height / 2) + 5, z + depth / 2);
@@ -1572,8 +1579,7 @@ Black_Sheep::~Black_Sheep() { }
 		glPopMatrix();
 		glPopMatrix();
 	}
-
-	void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
+void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 	{
 		// 양과의 좌표거리 계산
 		int sx = sheep->x, sz = sheep->z;
@@ -1674,7 +1680,7 @@ Black_Sheep::~Black_Sheep() { }
 		}
 
 	}
-	void Black_Sheep::update2(Sheep* sheep, Object* obstacles[])
+void Black_Sheep::update2(Sheep* sheep, Object* obstacles[])
 	{
 		if (killed)
 		{
@@ -1687,8 +1693,7 @@ Black_Sheep::~Black_Sheep() { }
 		}
 		else { trace_return(sheep, obstacles); }
 	}
-
-	void MotherSheep::draw()
+void MotherSheep::draw()
 	{
 		glPushMatrix();
 		glTranslated(x, y, z);
@@ -1784,14 +1789,13 @@ Black_Sheep::~Black_Sheep() { }
 	}
 
 
-
-	Ui::Ui(int size) : canvas_size(size), selected_menu(0), heart_size(0.5), heart_dir(1), presskey(false), help(0) {
+Ui::Ui(int size) : canvas_size(size), selected_menu(0), heart_size(0.5), heart_dir(1), presskey(false), help(0) {
 
 		for (int i = 0; i < 2; ++i)
 			key_delay[i] = 0;
 	}
-	Ui::~Ui() { }
-	int Ui::keyboard(unsigned char key, Sheep* sheep)
+Ui::~Ui() { }
+int Ui::keyboard(unsigned char key, Sheep* sheep)
 	{
 		if (*pGameMode == MAIN_MODE && selected_menu == 1 && key_delay[0] == 0)
 		{
@@ -1889,7 +1893,7 @@ Black_Sheep::~Black_Sheep() { }
 
 		return -1;
 	}
-	void Ui::special_key(int key)
+void Ui::special_key(int key)
 	{
 		if (presskey == false)
 		{
@@ -1960,7 +1964,7 @@ Black_Sheep::~Black_Sheep() { }
 			}
 		}
 	}
-	void Ui::draw(Sheep* sheep)
+void Ui::draw(Sheep* sheep)
 	{
 		glPushMatrix();
 		glOrtho(-canvas_size, canvas_size, -canvas_size, canvas_size, 1000, -1000);
@@ -2178,7 +2182,7 @@ Black_Sheep::~Black_Sheep() { }
 
 		glPopMatrix();
 	}
-	void Ui::update()
+void Ui::update()
 	{
 		if ((*pGameMode == GAME_OVER || *pGameMode == ENDING_MODE) && selected_menu == 0)
 		{

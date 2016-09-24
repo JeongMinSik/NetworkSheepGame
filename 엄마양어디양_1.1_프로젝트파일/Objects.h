@@ -85,6 +85,8 @@ struct Sheep : public Object {
 	virtual void update2(const Ground* ground, Object* obstacles[]);
 	void special_key(int key, Object* obstacles[]);
 	void special_key_up(int key);
+	void setSound(SoundPackage* pSound);
+	
 };
 struct Box : public Object {
 	int org_x, org_y, org_z;

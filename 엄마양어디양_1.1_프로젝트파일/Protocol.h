@@ -7,7 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
-#define		MAX_READY_CNT			1
+#define		MAX_PLAYER_CNT			2
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -44,6 +44,10 @@ struct SC_LOG_INOUT {
 	BYTE readyCount;
 };
 
+struct SC_START {
+	HEADER header;
+	BYTE ID_LIST[MAX_PLAYER_CNT];
+};
 
 struct SC_KEY {
 	HEADER header;

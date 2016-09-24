@@ -5,6 +5,8 @@ CNetwork::CNetwork()
 {
 	m_socket = NULL;
 	m_pRecvThread = nullptr;
+	m_nPlayerCount = 1;
+	m_piGameMode = nullptr;
 }
 
 CNetwork::~CNetwork()
@@ -36,7 +38,6 @@ void CNetwork::err_display(char * msg)
 	printf("[%s] %s", msg, (char *)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
-
 
 void CNetwork::connectServer()
 {
@@ -153,7 +154,7 @@ void CNetwork::packetUnpacker()
 	{
 		SC_LOG_INOUT login;
 		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
-		m_nID = login.ID;
+		m_Players[0].m_nID = login.ID;
 		//printf("접속했습니다. 부여받은 아이디는 %d입니다. \n",m_nID);
 		printf("접속했습니다. \n");
 		printf("레디 / 총 접속: ( %d / %d ) \n", login.readyCount, login.clientNum);
@@ -175,6 +176,12 @@ void CNetwork::packetUnpacker()
 		if (*m_piGameMode == READY_MODE) {
 			printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
 		}
+		for (int i = 0; i < m_nPlayerCount; ++i) {
+			if (m_Players[i].m_nID == logout.ID) {
+				m_Players[i].m_nID = -1;
+			}
+		}
+		--m_nPlayerCount;
 		break;
 	}
 	case PAK_READY:
@@ -187,24 +194,49 @@ void CNetwork::packetUnpacker()
 	}
 	case PAK_START:
 	{
-		SC_LOG_INOUT start;
-		memcpy(&start, m_saveBuf, sizeof(SC_LOG_INOUT));
-		printf("%d번 클라 준비완료! \n", start.ID);
-		printf("레디 / 총 접속: ( %d / %d ) \n", start.readyCount, start.clientNum);
+		SC_START start;
+		memcpy(&start, m_saveBuf, sizeof(SC_START));
 		printf("게임을 시작합니다. \n");
-		*m_piGameMode = PLAY_MODE;
+		*m_piGameMode = PLAY_MODE; 
+		m_nPlayerCount = MAX_PLAYER_CNT;
+
+		// 나 자신(인덱스0)을 제외한 타 플레이어들 아이디번호 저장
+		for (int i = 1; i < m_nPlayerCount; ++i) {
+			for (int j = 0; j < m_nPlayerCount; ++j) {
+				printf("m_Players[%d].m_nID: %d \n", i, m_Players[i].m_nID);
+				if (m_Players[0].m_nID != start.ID_LIST[j]) {
+					m_Players[i].m_nID = start.ID_LIST[j];
+					break;
+				}
+			}
+		}
+
+		
 		break;
 	}
 	case PAK_KEY_DOWN:
 	{
 		SC_KEY keyDown;
 		memcpy(&keyDown, m_saveBuf, sizeof(SC_KEY));
+		for (int i = 0; i < m_nPlayerCount; ++i) {
+			if (m_Players[i].m_nID == keyDown.ID) {
+				m_Players[i].m_pSheep->special_key(keyDown.key,m_ppObstacles);
+				m_Players[i].m_pSheep->pCamera->keyboard(keyDown.key);
+				break;
+			}
+		}
 		break;
 	}
-	case PAK_KEY_UP:
+	case PAK_KEY_UP: 
 	{
 		SC_KEY keyUp;
 		memcpy(&keyUp, m_saveBuf, sizeof(SC_KEY));
+		for (int i = 0; i < m_nPlayerCount; ++i) {
+			if (m_Players[i].m_nID == keyUp.ID) {
+				m_Players[i].m_pSheep->special_key_up(keyUp.key);
+				break;
+			}
+		}
 		break;
 	}
 	default:
@@ -257,4 +289,8 @@ void CNetwork::getReady()
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
+}
+
+void CNetwork::keySync()
+{
 }

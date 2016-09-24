@@ -1,27 +1,20 @@
-﻿빌드 시작: 2016-09-25 오전 12:21:31
+﻿빌드 시작: 2016-09-25 오전 3:06:07
      1>2 노드의 "D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\엄마양어디양_최종.vcxproj" 프로젝트(Build 대상)입니다.
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp Objects.cpp main.cpp stdafx.cpp
-         main.cpp
-     1>d:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\main.cpp(522): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-         c:\program files (x86)\windows kits\10\include\10.0.10150.0\ucrt\stdio.h(205): note: 'fopen' 선언을 참조하십시오.
-         Objects.cpp
-         코드를 생성하고 있습니다...
-         컴파일하고 있습니다...
-         stdafx.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp
          Network.cpp
-     1>d:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\network.cpp(57): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+     1>d:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\network.cpp(58): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
          c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 'inet_addr' 선언을 참조하십시오.
-         코드를 생성하고 있습니다...
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\Debug\엄마양어디양_최종.exe" /INCREMENTAL /NOLOGO /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\Debug\엄마양어디양_최종.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\Debug\엄마양어디양_최종.lib" /MACHINE:X86 "Debug\엄마양어디양_최종.res"
          Debug\main.obj
          Debug\Network.obj
          Debug\Objects.obj
+         Debug\Player.obj
          Debug\stdafx.obj
          엄마양어디양_최종.vcxproj -> D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\Debug\엄마양어디양_최종.exe
      1>"D:\3_2\넷겜플\텀프로젝트\엄마양어디양_1.1_프로젝트파일\엄마양어디양_최종.vcxproj" 프로젝트를 빌드했습니다(Build 대상).
 
 빌드했습니다.
 
-경과 시간: 00:00:03.78
+경과 시간: 00:00:01.19

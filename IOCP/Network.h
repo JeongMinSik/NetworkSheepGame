@@ -59,7 +59,8 @@ public:
 	bool packetProcess(CHAR*, int);
 	bool Login(int id);
 	bool Logout(int id);
-	bool Ready(int id);
+	bool Ready(int id); 
+	bool Start();
 	bool Key(int id, void *buf);
 	bool syncData(void *buf, int id);
 	void transmitProcess(void * buf, int id);
