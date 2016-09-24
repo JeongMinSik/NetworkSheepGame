@@ -1,10 +1,19 @@
 #include <Windows.h>
 #include <fstream>
 #include <gl/glut.h>
+#include <iostream>
+#include <ctime>
 #include "inc/fmod.hpp"
+
+
+// 단위는 밀리세컨드, FPS 62.5
+#define FIXED_FRAME_TIME	16   // 최저프레임시간
+#define MAX_FRAME_TIME		250  // 뻗는 걸 막기 위한 최대프레임시간
+#define DELTA_TIME			10.0	 // 쪼개서 계산할 단위
 
 #pragma comment (lib, "fmodex_vc.lib")
 using namespace FMOD;
+using namespace std;
 
 //함수선언
 GLvoid updateScene(int);
@@ -51,14 +60,14 @@ int Game_Mode = MAIN_MODE;
 #define ENDING_X 9500
 
 struct Camera {
-	int x, y, z;
+	float x, y, z;
 	int canvas_size;
-	int view_radius;
+	float view_radius;
 	bool view_point;
 	bool is_changing;
 	Camera()
 	{
-		x = 0; y = 100;
+		x = 9500; y = 100;
 		canvas_size = 200;
 		view_radius = 0;
 		view_point = FRONT_VIEW;
@@ -87,7 +96,7 @@ struct Camera {
 		{
 			if (view_point == FRONT_VIEW)
 			{
-				view_radius -= 8;
+				view_radius -= 0.2f * DELTA_TIME;
 				if (view_radius <= -90)
 				{
 					is_changing = false;
@@ -97,7 +106,7 @@ struct Camera {
 			}
 			else if (view_point == DOWN_VIEW)
 			{
-				view_radius += 8;
+				view_radius += 0.2f * DELTA_TIME;
 				if (view_radius >= 0)
 				{
 					is_changing = false;
@@ -110,10 +119,10 @@ struct Camera {
 
 };
 struct Ground {
-	int x, y, z;
-	int width, height, depth;
+	float x, y, z;
+	float width, height, depth;
 	int back_height;
-	Ground(int x, int y, int z) :x(x), y(y), z(z), width(1000), height(100), depth(400) {
+	Ground(float x, float y, float z) :x(x), y(y), z(z), width(1000), height(100), depth(400) {
 		back_height = 300;
 	}
 	~Ground() { }
@@ -195,15 +204,15 @@ struct Ground {
 	}
 };
 struct Object {
-	int x, y, z;
-	int width, height, depth;
-	int speed;
-	int max_x, max_y, max_z;
+	float x, y, z;
+	float width, height, depth;
+	float speed;
+	float max_x, max_y, max_z;
 	int state_x, state_y, state_z;
 	int type;
 	bool killed = false;
 
-	Object(int type, int x, int y, int z, int w, int h, int d, int sp = 0, int m_x = 0, int m_y = 0, int m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp), max_x(m_x), max_y(m_y), max_z(m_z) {}
+	Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*DELTA_TIME*0.03), max_x(m_x), max_y(m_y), max_z(m_z) {}
 	virtual ~Object() {  }
 	virtual void draw() = 0;
 	virtual void update(Sheep*) {};
@@ -254,10 +263,10 @@ struct Object {
 };
 struct Sheep : public Object {
 	bool state[8]; // 이동상태
-	int jump_height;		// 점프력
-	int minus_height; //감소 점프력
-	int x_additional_speed, y_additional_speed, z_additional_speed;	// 추가 이동속도
-	int org_y; // 점프시 y 위치
+	float jump_height;		// 점프력
+	float minus_height; //감소 점프력
+	float x_additional_speed, y_additional_speed, z_additional_speed;	// 추가 이동속도
+	float org_y; // 점프시 y 위치
 	int last_view; //마지막 바라본 방향(각도)
 	int life; //목숨
 	bool is_invincible; // 무적상태
@@ -267,14 +276,14 @@ struct Sheep : public Object {
 	int cur_invicible_time;  // 현재 무적시간
 	int stading_index; // 바닥객체 인덱스
 	bool ending_finished = false;
-	Sheep(int t, int x, int y, int z, int sp) : Object(t, x, y, z, 45, 30, 35, sp) {
-		jump_height = 80;
+	Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 35, sp) {
+		jump_height = 100;
 		minus_height = 0;
 		x_additional_speed = y_additional_speed = z_additional_speed = 0;
 		last_view = 0;
 		life = 3;
 		is_invincible = is_under = is_in_hay = false;
-		max_invicible_time = 30;
+		max_invicible_time = 2000;
 		cur_invicible_time = 0;
 		stading_index = -1;
 		for (int i = 0; i < 8; ++i)
@@ -298,12 +307,14 @@ struct Sheep : public Object {
 	}
 	void dead_update()
 	{
+		camera->is_changing = false;
+
 		//죽은 양
 		if (camera->view_radius != -40)
-			(camera->view_radius < -40) ? camera->view_radius += 5 : camera->view_radius -= 5;
+			(camera->view_radius < -40) ? camera->view_radius += 0.25*DELTA_TIME : camera->view_radius -= 0.25*DELTA_TIME;
 		else if (y <= 500)
 		{
-			y += 15;
+			y += 0.5f*DELTA_TIME;
 
 			if (y > 500)
 			{
@@ -313,6 +324,9 @@ struct Sheep : public Object {
 	}
 	void ending_update()
 	{
+
+		camera->is_changing = false;
+
 		static int dir = 1, jump_cnt;
 		static bool sound = true;
 		const int JUMP_MAX = 3;
@@ -320,7 +334,7 @@ struct Sheep : public Object {
 		// 카메라이동
 		if (camera->view_radius != -20)
 		{
-			(camera->view_radius < -20) ? camera->view_radius += 5 : camera->view_radius -= 5;
+			(camera->view_radius < -20) ? camera->view_radius += 0.5*DELTA_TIME : camera->view_radius -= 0.5*DELTA_TIME;
 			dir = 1, jump_cnt = 0;
 			sound = true;
 		}
@@ -419,8 +433,8 @@ struct Sheep : public Object {
 		glColor3f(1, 1, 1);
 
 		//무적애니메이션
-		if (is_invincible && cur_invicible_time % 2 == 0){
-			if (cur_invicible_time % 2 == 0) {
+		if (is_invincible){
+			if (cur_invicible_time % 20 == 0) {
 				glColor3f(1, 0, 0);
 			}
 			else {
@@ -586,8 +600,8 @@ struct Sheep : public Object {
 
 		//무적상태
 		if (is_invincible){
-			(cur_invicible_time % 2) ? camera->canvas_size += 4 : camera->canvas_size -= 4;
-			++cur_invicible_time;
+			(cur_invicible_time % 20) ? camera->canvas_size += 0.4*DELTA_TIME : camera->canvas_size -= 0.4 * DELTA_TIME;
+			cur_invicible_time += DELTA_TIME;
 			if (cur_invicible_time >= max_invicible_time){
 				is_invincible = false;
 				is_under = false;
@@ -650,8 +664,8 @@ struct Sheep : public Object {
 			x_additional_speed = z_additional_speed = 0;
 		}
 
-		int back_distance; // 충돌 시 되돌아오는 거리값
-						   // 기본이동 및 충돌체크
+		float back_distance; // 충돌 시 되돌아오는 거리값
+		// 기본이동 및 충돌체크
 		if (state[RIGHT_STATE])
 		{
 			x += speed + x_additional_speed; camera->x += speed + x_additional_speed;
@@ -1007,7 +1021,7 @@ struct Sheep : public Object {
 };
 struct Box : public Object {
 	int org_x, org_y, org_z;
-	Box(int t, int x, int y, int z, int sp = 0, int m_x = 0, int m_y = 0, int m_z = 0) : Object(t, x, y, z, 0, 0, 0, sp, m_x, m_y, m_z) {
+	Box(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 0, 0, 0, sp, m_x, m_y, m_z) {
 		if (type == BOX)
 		{
 			width = 70; height = 70; depth = 80;
@@ -1123,7 +1137,7 @@ struct Box : public Object {
 				x -= 2 * speed;
 			}
 		}
-		else if (state_x == LEFT_STATE)
+		if (state_x == LEFT_STATE)
 		{
 			x -= speed;
 			if (AABB(sheep))
@@ -1191,10 +1205,10 @@ struct Box : public Object {
 	}
 };
 struct Scissors : public Object {
-	int org_x, org_y, org_z;
+	float org_x, org_y, org_z;
 	int Rotate_y;
 	int scissor_rot;
-	Scissors(int t, int x, int y, int z, int sp = 0, int m_x = 0, int m_y = 0, int m_z = 0) : Object(t, x, y, z, 40, 8, 35, sp, m_x, m_y, m_z) {
+	Scissors(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 40, 8, 35, sp, m_x, m_y, m_z) {
 		max_x = m_x;	max_y = m_y;	max_z = m_z;
 		org_x = x;		org_y = y;		org_z = z;
 		Rotate_y = 0;
@@ -1343,7 +1357,7 @@ struct Scissors : public Object {
 };
 struct Pumkin : public Object {
 	int org_y;
-	Pumkin(int t, int x, int y, int z, int sp = 0, int m_x = 0, int m_y = 0, int m_z = 0) : Object(t, x, y, z, 50, 50, 50, sp, m_x, m_y, m_z) {
+	Pumkin(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 50, 50, 50, sp, m_x, m_y, m_z) {
 		max_y = m_y;
 		org_y = y;
 		if (max_y > 0) state_y = JUMP_UP_STATE;
@@ -1442,7 +1456,7 @@ struct Pumkin : public Object {
 };
 struct Hay : public Object
 {
-	Hay(int t, int x, int y, int z, int sp = 0, int m_x = 0, int m_y = 0, int m_z = 0) : Object(t, x, y, z, 100, 70, 100, sp, m_x, m_y, m_z) {
+	Hay(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 100, 70, 100, sp, m_x, m_y, m_z) {
 	}
 	~Hay() {  }
 	virtual bool AABB_surface(const Object* other) override final
@@ -1537,10 +1551,10 @@ struct Black_Sheep : public Object {
 	int tracing_distance; //추격거리
 	int org_x, org_z; // 원 위치
 	bool is_tracing; // 추격준비모드
-	int ouch; // 꿍한 횟수
+	float ouch; // 꿍한 시간
 	int wait_time; // 어리둥절 하는 시간
 	float y_scale = 0; // 만큼 축소시킨다.
-	Black_Sheep(int t, int x, int y, int z, int sp = 0, int area_of_activity = 0, int none1 = 0, int none2 = 0) : Object(t, x, y, z, 55, 35, 55, sp, area_of_activity, none1, none2) {
+	Black_Sheep(int t, float x, float y, float z, float sp = 0, int area_of_activity = 0, int none1 = 0, int none2 = 0) : Object(t, x, y, z, 55, 35, 55, sp, area_of_activity, none1, none2) {
 		org_x = x;
 		org_z = z;
 		tracing_distance = area_of_activity;
@@ -1679,7 +1693,7 @@ struct Black_Sheep : public Object {
 		if (is_tracing)
 		{
 			// 추격 종료
-			if (org_d > tracing_distance || sheep->is_in_hay || d > tracing_distance || ouch > 15)
+			if (org_d > tracing_distance || sheep->is_in_hay || d > tracing_distance || ouch > 1000)
 			{
 				is_tracing = false;
 			}
@@ -1720,7 +1734,7 @@ struct Black_Sheep : public Object {
 						{
 							if (AABB(obstacles[i]))
 							{
-								++ouch;
+								ouch += DELTA_TIME;
 								x -= vx;
 								z -= vz;
 								break;
@@ -1732,8 +1746,8 @@ struct Black_Sheep : public Object {
 		}
 		else
 		{
-			++wait_time;
-			if (wait_time > 10)
+			wait_time+=DELTA_TIME;
+			if (wait_time > 1000)
 			{
 				ouch = 0;
 				// 바라보는 각도 계산
@@ -1753,7 +1767,7 @@ struct Black_Sheep : public Object {
 				z += vz;
 			}
 			//추격 재개
-			else if (org_d <= tracing_distance && sheep->is_in_hay == false && d <= tracing_distance && ouch <= 15)
+			else if (org_d <= tracing_distance && sheep->is_in_hay == false && d <= tracing_distance && ouch <= 1000)
 			{
 				is_tracing = true;
 				wait_time = 0;
@@ -1776,7 +1790,7 @@ struct Black_Sheep : public Object {
 			{
 				y--;
 				height -= sheep->speed;
-				y_scale += 0.08;
+				//y_scale += 0.01*DELTA_TIME;
 			}
 		}
 		else { trace_return(sheep, obstacles); }
@@ -2131,16 +2145,19 @@ struct Ui {
 					glColor3f(1, 1, 1);
 					if (x > -150)
 					{
-						x -= 10; y -= 10; width += 20; height += 20;
+						x -= DELTA_TIME*0.1; 
+						y -= DELTA_TIME*0.1;
+						width += 0.2 * DELTA_TIME;
+						height += 0.2 * DELTA_TIME;
 					}
 					else if (ending_screen != 3)
 					{
-						++time;
-						if (time % 7 == 0)
+						time+=DELTA_TIME;
+						if (time % 200 == 0)
 						{
 							ending_screen = (ending_screen + 1) % 2;
 						}
-						if (time > 50)
+						if (time >= 2000)
 						{
 							ending_screen = 3;
 						}
@@ -2284,7 +2301,7 @@ struct Ui {
 			if (k) { --k; }
 		}
 
-		heart_size += heart_dir*0.01;
+		heart_size += heart_dir*0.00025 * DELTA_TIME;
 
 		if (heart_size > 0.6) { heart_dir = -1; } // 하트 최대 크기
 		else if (heart_size < 0.5) { heart_dir = +1; } // 하트 최소 크기
@@ -2601,52 +2618,72 @@ void main()
 	glutMainLoop();
 }
 
+float currentTime = clock();
+float accumulator = 0.0;
 GLvoid updateScene(int value)
 {
 	FMOD_System_Update(g_System);
 
-	ui->update();
+	float newTime = clock();
+	float frameTime = newTime - currentTime;
 
-	if (Game_Mode == PLAY_MODE)
-	{
-		//카메라 업데이트
-		camera->update();
+	while (frameTime < FIXED_FRAME_TIME) {
+		frameTime = clock() - currentTime;
+	}
 
+	if (frameTime > MAX_FRAME_TIME) {
+		frameTime = MAX_FRAME_TIME;
+	}
 
-		//객체 업데이트 (+스탠딩 상태 확인)
-		sheep->stading_index = -1;
-		for (int i = 0; i < ob_num; ++i)
+	currentTime = newTime;
+	//printf("FPS:%f \n", 1000.0 / frameTime);
+	accumulator += frameTime;
+	while (accumulator >= DELTA_TIME) {
+
+		ui->update();
+
+		switch (Game_Mode)
 		{
-			if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep))
-			{
-				sheep->stading_index = i;
+		case PLAY_MODE:
+
+			printf("x:%f \n", sheep->x);
+
+			//카메라 업데이트
+			if(!sheep->killed)
+				camera->update();
+			//객체 업데이트 (+스탠딩 상태 확인)
+			sheep->stading_index = -1;
+			for (int i = 0; i < ob_num; ++i) {
+
+				if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+					sheep->stading_index = i;
+				}
+
+				if (obstacles[i]->type == BLACK_SHEEP) {
+					obstacles[i]->update(sheep, obstacles);
+				}
+				else {
+					obstacles[i]->update(sheep);
+				}
 			}
-			if (obstacles[i]->type == BLACK_SHEEP)
-			{
-				obstacles[i]->update(sheep, obstacles);
-			}
-			else
-			{
-				obstacles[i]->update(sheep);
-			}
+			//양 업데이트
+			sheep->update(ground[0], obstacles);
+			break;
+		case GAME_OVER:
+			sheep->dead_update();
+			break;
+		case ENDING_MODE:
+			sheep->ending_update();
+			break;
 		}
 
-		//양 업데이트
-		sheep->update(ground[0], obstacles);
-
+		accumulator -= DELTA_TIME;
 	}
-	else if (Game_Mode == GAME_OVER)
-	{
-		sheep->dead_update();
-	}
-	else if (Game_Mode == ENDING_MODE)
-	{
-		sheep->ending_update();
-	}
-
 	glutPostRedisplay();
-	glutTimerFunc(50, updateScene, 100);
+	glutTimerFunc(1, updateScene, 1);
+
 }
+
 
 GLvoid drawScene(GLvoid)
 {
