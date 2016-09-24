@@ -1,5 +1,5 @@
 #include "Network.h"
-#include "Protocol.h"
+#include "stdafx.h"
 
 CNetwork::CNetwork()
 {

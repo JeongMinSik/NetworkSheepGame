@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "Protocol.h"
+
 using namespace std;
 
 class CNetwork
