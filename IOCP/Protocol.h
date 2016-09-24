@@ -1,33 +1,39 @@
 #pragma once
 #include "stdafx.h"
 
-#define		MAX_PACKET_SIZE			256
+#define		MAX_PACKET_SIZE			1024
 #define		SERVER_PORT				9000
+#define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
 
-#define		PAK_SYNC				0
-#define		PAK_ID					1
-#define		PAK_REG					2
-#define		PAK_RMV					3
+#define		PAK_LOGIN				0
+#define		PAK_REG					1
+#define		PAK_RMV					2
+#define		PAK_KEY_UP				3
+#define		PAK_KEY_DOWN			4
 
 
 #pragma pack(push, 1)
 
 struct HEADER
 {
-	UCHAR			ucSize;
+	BYTE			ucSize;
 	BYTE			byPacketID;
 };
 
-struct CTOS_SYNC
-{
-	char data[MAX_PACKET_SIZE-3];
+struct SC_LOG_INOUT {
+	HEADER header;
+	BYTE ID;
 };
 
-struct STOC_SYNC
-{
-	BYTE	ID;
-	char data[MAX_PACKET_SIZE-3];
+struct SC_SYNC {
+	HEADER header;
+	BYTE ID;
+	CHAR KEY;
 };
 
+struct CS_SYNC {
+	HEADER header;
+	CHAR KEY;
+};
 #pragma pack(pop)

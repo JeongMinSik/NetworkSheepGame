@@ -259,34 +259,29 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 
 	switch (buf[1])
 	{
-	case PAK_SYNC:
-		issuccess = syncData(buf, id);
+	case PAK_LOGIN:
+		issuccess = Login(id);
 		break;
-	case PAK_ID:
-		issuccess = Login(buf, id);
+	case PAK_RMV:
+		issuccess = Logout(buf, id);
 		break;
 	}
 	return issuccess;
 }
 
-bool CNetwork::Login(void * buf, int id)
+bool CNetwork::Login(int id)
 {
-	// 헤더작성
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
-	HEADER *phead = (HEADER*)sendData;
-	phead->byPacketID = PAK_ID;
-	phead->ucSize = sizeof(HEADER) + 1; // 헤더 + 아이디번호
-	// 본문작성
-	STOC_SYNC *pData = (STOC_SYNC*)(sendData + sizeof(HEADER));
+	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)(sendData);
+	pData->header.ucSize = sizeof(SC_LOG_INOUT);
+	pData->header.byPacketID = PAK_LOGIN;
 	pData->ID = id;
-
+	
 	// 아이디번호 부여
 	transmitProcess(sendData, id);
 
-	phead->byPacketID = PAK_REG;
-	phead->ucSize = sizeof(HEADER) + 1; // 헤더 + 아이디
 	// 다른 플레이어에게 접속 사실을 알림
-	// 실제코드에서는 위치정보 등 부가정보도 넘겨야 함
+	pData->header.byPacketID = PAK_REG;
 	for (auto client : m_vpClientInfo) {
 		if (client) {
 			transmitProcess(sendData, client->nID);
@@ -305,11 +300,10 @@ bool CNetwork::Logout(void * buf, int id)
 
 	// 플레이어들에게 접속종료 사실을 알린다.
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
-	HEADER *phead = (HEADER*)sendData;
-	phead->byPacketID = PAK_RMV;
-	phead->ucSize = sizeof(HEADER) + 1;
-	STOC_SYNC *pdata1 = (STOC_SYNC*)(sendData + sizeof(HEADER));
-	pdata1->ID = id;
+	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
+	pData->header.ucSize = sizeof(SC_LOG_INOUT);
+	pData->header.byPacketID = PAK_RMV;
+	pData->ID = id;
 
 	for (auto &data : m_vpClientInfo){
 		if (data){
@@ -324,22 +318,19 @@ bool CNetwork::Logout(void * buf, int id)
 
 bool CNetwork::syncData(void * buf, int id)
 {
-	CTOS_SYNC *recvData = (CTOS_SYNC*)((UCHAR*)buf + sizeof(HEADER));
+	CS_SYNC *recvData = (CS_SYNC*)buf;
 
-	printf("[%d]번 클라로부터 받은 데이터: %s \n", id, recvData->data);
+	printf("[%d]번 클라로부터 받은 KEY, updown 데이터: %c, \n", id, recvData->KEY, recvData->header.byPacketID);
 	
 	// 이 부분에 받은 데이터를 가지고 계산을 해서 그 결과를 클라들에게 주어야 한다.
 	// 현재는 받은 데이터를 그대로 모든 클라에게 전달한다.
 	
 	// 헤더작성
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
-	HEADER *phead = (HEADER*)sendData;
-	phead->byPacketID = PAK_SYNC;
-	phead->ucSize = (UCHAR)(sizeof(HEADER) + strlen(recvData->data) + 2); // 헤더 + 버퍼내용 + 2(아이디 + 널)
-	// 본문작성
-	STOC_SYNC *pData = (STOC_SYNC*)(sendData + sizeof(HEADER));
+	SC_SYNC *pData = (SC_SYNC*)sendData;
+	pData->header.ucSize = sizeof(SC_SYNC);
+	pData->header.byPacketID = recvData->header.byPacketID;
 	pData->ID = id;
-	memcpy(pData->data, recvData, strlen(recvData->data)+1);
 
 	for (auto client : m_vpClientInfo) {
 		if (client) {

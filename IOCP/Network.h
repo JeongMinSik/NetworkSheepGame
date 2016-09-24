@@ -52,7 +52,7 @@ public:
 
 	//패킷 처리 함수
 	bool packetProcess(CHAR*, int);
-	bool Login(void *buf, int id);
+	bool Login(int id);
 	bool Logout(void *buf, int id);
 	bool syncData(void *buf, int id);
 	void transmitProcess(void * buf, int id);
