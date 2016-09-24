@@ -9,6 +9,9 @@ class CNetwork
 	int m_nID;
 	int m_nLeft;
 	char m_saveBuf[MAX_PACKET_SIZE];
+
+	// 게임관련정보
+	int *m_piGameMode;
 public:
 	CNetwork();
 	~CNetwork();
@@ -20,8 +23,12 @@ public:
 	void endServer();
 	void recvThreadFunc();
 	void packetUnpacker();
-	void keyDown(char);
-	void keyUp(char);
+	void keyDown(int);
+	void keyUp(int);
 	void getReady();
+
+	void initGameMode(int *piGameMode) {
+		m_piGameMode = piGameMode;
+	}
 };
 

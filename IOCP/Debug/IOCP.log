@@ -1,4 +1,4 @@
-﻿빌드 시작: 2016-09-24 오후 7:43:28
+﻿빌드 시작: 2016-09-24 오후 10:14:44
      1>2 노드의 "D:\3_2\넷겜플\텀프로젝트\IOCP\IOCP.vcxproj" 프로젝트(Build 대상)입니다.
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp main.cpp
@@ -7,8 +7,6 @@
          c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(2238): note: 'gethostbyname' 선언을 참조하십시오.
      1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(90): warning C4996: 'inet_ntoa': Use inet_ntop() or InetNtop() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
          c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1868): note: 'inet_ntoa' 선언을 참조하십시오.
-     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(365): warning C4474: 'printf' : 서식 문자열에 전달된 인수가 너무 많습니다.
-         d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(365): note: placeholders and their parameters expect 2 variadic arguments, but 3 were provided
          코드를 생성하고 있습니다...
          컴파일하고 있습니다...
          main.cpp
@@ -22,4 +20,4 @@
 
 빌드했습니다.
 
-경과 시간: 00:00:02.06
+경과 시간: 00:00:02.26

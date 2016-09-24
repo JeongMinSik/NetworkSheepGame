@@ -3,7 +3,6 @@
 
 CNetwork NetworkManager;
 
-
 // 함수선언
 GLvoid updateScene(int);
 GLvoid drawScene(GLvoid);
@@ -1900,26 +1899,26 @@ struct Ui {
 			key_delay[0] = 3;
 			help = (help + 1) % 3;
 		}
-		if (key == 27 && key_delay[0] == 0) // ESC
-		{
-			if (Game_Mode == PLAY_MODE)
-			{
-				key_delay[0] = 5;
-				FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
-				FMOD_Channel_SetPaused(g_Channel[GAME_BGM], true);
-				selected_menu = 0;
-				Game_Mode = PAUSE_MODE;
-			}
-			else if (Game_Mode == PAUSE_MODE)
-			{
-				key_delay[0] = 5;
-				FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
-				FMOD_Channel_SetPaused(g_Channel[GAME_BGM], false);
-				selected_menu = 0;
-				Game_Mode = PLAY_MODE;
-			}
-		}
-		else if ((key == ' ' || key == 13) && key_delay[0] == 0)
+		//if (key == 27 && key_delay[0] == 0) // ESC
+		//{
+		//	if (Game_Mode == PLAY_MODE)
+		//	{
+		//		key_delay[0] = 5;
+		//		FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
+		//		FMOD_Channel_SetPaused(g_Channel[GAME_BGM], true);
+		//		selected_menu = 0;
+		//		Game_Mode = PAUSE_MODE;
+		//	}
+		//	else if (Game_Mode == PAUSE_MODE)
+		//	{
+		//		key_delay[0] = 5;
+		//		FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[BUTTON_OK_E], 0, &g_Channel[BUTTON_OK_E]);
+		//		FMOD_Channel_SetPaused(g_Channel[GAME_BGM], false);
+		//		selected_menu = 0;
+		//		Game_Mode = PLAY_MODE;
+		//	}
+		//}
+		if ((key == ' ' || key == 13) && key_delay[0] == 0)
 		{
 			if (Game_Mode == MAIN_MODE)
 			{
@@ -1934,7 +1933,6 @@ struct Ui {
 					NetworkManager.getReady();
 					//게임시작
 					CreateWorld();
-					Game_Mode = READY_MODE;
 					FMOD_Channel_Stop(g_Channel[MAIN_BGM]);
 					FMOD_System_PlaySound(g_System, FMOD_CHANNEL_FREE, g_Sound[GAME_BGM], 0, &g_Channel[GAME_BGM]);
 					FMOD_Channel_SetVolume(g_Channel[GAME_BGM], GAME_BGM_VOLUME);
@@ -2569,6 +2567,7 @@ void Program_Exit()
 void main()
 {
 	NetworkManager.connectServer();
+	NetworkManager.initGameMode(&Game_Mode);
 
 	atexit(Program_Exit);
 
@@ -2711,14 +2710,18 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 GLvoid SpecialKeyboard(int key, int x, int y)
 {
 	ui->special_key(key);
-	if (Game_Mode != MAIN_MODE)
+	if (Game_Mode == PLAY_MODE) {
 		sheep->special_key(key, obstacles);
+		NetworkManager.keyDown(key);
+	}
 }
 
 GLvoid SpecialKeyboardUp(int key, int x, int y)
 {
-	if (Game_Mode != MAIN_MODE)
+	if (Game_Mode == PLAY_MODE) {
 		sheep->special_key_up(key);
+		NetworkManager.keyUp(key);
+	}
 }
 
 GLvoid Reshape(int w, int h)

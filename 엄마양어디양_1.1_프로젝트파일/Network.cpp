@@ -172,7 +172,9 @@ void CNetwork::packetUnpacker()
 		SC_LOG_INOUT logout;
 		memcpy(&logout, m_saveBuf, sizeof(SC_LOG_INOUT));
 		printf("%d번 클라가 로그아웃했습니다. \n", logout.ID);
-		printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
+		if (*m_piGameMode == READY_MODE) {
+			printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
+		}
 		break;
 	}
 	case PAK_READY:
@@ -181,6 +183,28 @@ void CNetwork::packetUnpacker()
 		memcpy(&ready, m_saveBuf, sizeof(SC_LOG_INOUT));
 		printf("%d번 클라 준비완료! \n", ready.ID);
 		printf("레디 / 총 접속: ( %d / %d ) \n", ready.readyCount, ready.clientNum);
+		break;
+	}
+	case PAK_START:
+	{
+		SC_LOG_INOUT start;
+		memcpy(&start, m_saveBuf, sizeof(SC_LOG_INOUT));
+		printf("%d번 클라 준비완료! \n", start.ID);
+		printf("레디 / 총 접속: ( %d / %d ) \n", start.readyCount, start.clientNum);
+		printf("게임을 시작합니다. \n");
+		*m_piGameMode = PLAY_MODE;
+		break;
+	}
+	case PAK_KEY_DOWN:
+	{
+		SC_KEY keyDown;
+		memcpy(&keyDown, m_saveBuf, sizeof(SC_KEY));
+		break;
+	}
+	case PAK_KEY_UP:
+	{
+		SC_KEY keyUp;
+		memcpy(&keyUp, m_saveBuf, sizeof(SC_KEY));
 		break;
 	}
 	default:
@@ -192,16 +216,38 @@ void CNetwork::packetUnpacker()
 
 }
 
-void CNetwork::keyDown(char)
+void CNetwork::keyDown(int key)
 {
+	char sendData[MAX_PACKET_SIZE] = { 0 };
+	CS_KEY *pData = (CS_KEY*)sendData;
+	pData->header.ucSize = sizeof(CS_KEY);
+	pData->header.byPacketID = PAK_KEY_DOWN;
+	pData->key = key;
+
+	int retval = send(m_socket, sendData, sizeof(CS_KEY), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
 }
 
-void CNetwork::keyUp(char)
+void CNetwork::keyUp(int key)
 {
+	char sendData[MAX_PACKET_SIZE] = { 0 };
+	CS_KEY *pData = (CS_KEY*)sendData;
+	pData->header.ucSize = sizeof(CS_KEY);
+	pData->header.byPacketID = PAK_KEY_UP;
+	pData->key = key;
+
+	int retval = send(m_socket, sendData, sizeof(CS_KEY), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
 }
 
 void CNetwork::getReady()
 {
+	*m_piGameMode = READY_MODE;
+
 	char sendData[MAX_PACKET_SIZE] = { 0 };
 	HEADER *pData = (HEADER*)sendData;
 	pData->ucSize = sizeof(HEADER);

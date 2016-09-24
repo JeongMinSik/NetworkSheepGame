@@ -60,6 +60,7 @@ public:
 	bool Login(int id);
 	bool Logout(int id);
 	bool Ready(int id);
+	bool Key(int id, void *buf);
 	bool syncData(void *buf, int id);
 	void transmitProcess(void * buf, int id);
 

@@ -7,6 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
+#define		MAX_READY_CNT			1
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -14,6 +15,7 @@
 #define		PAK_KEY_UP				3
 #define		PAK_KEY_DOWN			4
 #define		PAK_READY				5
+#define		PAK_START				6		
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -49,17 +51,17 @@ struct SC_LOG_INOUT {
 };
 
 
-struct SC_SYNC {
+struct SC_KEY {
 	HEADER header;
+	BYTE key;
 	BYTE ID;
-	CHAR key;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
 
-struct CS_SYNC {
+struct CS_KEY {
 	HEADER header;
-	CHAR KEY;
+	BYTE key;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

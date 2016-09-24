@@ -7,6 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
+#define		MAX_READY_CNT			1
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -14,6 +15,7 @@
 #define		PAK_KEY_UP				3
 #define		PAK_KEY_DOWN			4
 #define		PAK_READY				5
+#define		PAK_START				6		
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -30,8 +32,8 @@ enum { BOX_FRONT, BOX_TOP, GROUND_FRONT, GROUND_TOP, BACK_GROUND, BRICK_FRONT, B
 enum { MAIN_BGM, GAME_BGM, JUMP_E, KILL_E, CRY_E, BUTTON_MOVE_E, BUTTON_OK_E, GET_HURT_E, CAMERA_E, CLEAR_BGM }; // »ç¿îµå
 
 
-#pragma pack(push, 1)
-//////////////////////////////////////////////////////////////////////////////////
+#pragma pack(push, 1)																				 
+																												 //////////////////////////////////////////////////////////////////////////////////
 
 struct HEADER
 {
@@ -49,17 +51,17 @@ struct SC_LOG_INOUT {
 };
 
 
-struct SC_SYNC {
+struct SC_KEY {
 	HEADER header;
+	BYTE key;
 	BYTE ID;
-	CHAR key;
 };
 
 //////////////////////////////////////////////////////////////////////////////////
 
-struct CS_SYNC {
+struct CS_KEY {
 	HEADER header;
-	CHAR KEY;
+	BYTE key;
 };
 
 //////////////////////////////////////////////////////////////////////////////////

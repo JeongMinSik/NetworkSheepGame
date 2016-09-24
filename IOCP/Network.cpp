@@ -270,6 +270,10 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	case PAK_READY:
 		issuccess = Ready(id);
 		break;
+	case PAK_KEY_DOWN: case PAK_KEY_UP:
+		issuccess = Key(id, buf);
+		break;
+
 	}
 	return issuccess;
 }
@@ -341,12 +345,14 @@ bool CNetwork::Ready(int id)
 	++m_nReadyCount;
 
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
 	pData->header.ucSize = sizeof(SC_LOG_INOUT);
 	pData->header.byPacketID = PAK_READY;
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
 
+	pData->header.byPacketID = (m_nReadyCount < MAX_READY_CNT) ? PAK_READY : PAK_START;
 	for (auto &data : m_vpClientInfo) {
 		if (data) {
 			transmitProcess(sendData, data->nID);
@@ -358,27 +364,37 @@ bool CNetwork::Ready(int id)
 	return true;
 }
 
-bool CNetwork::syncData(void * buf, int id)
-{
-	CS_SYNC *recvData = (CS_SYNC*)buf;
+bool CNetwork::Key(int id, void *buf) {
 
-	printf("[%d]번 클라로부터 받은 KEY, updown 데이터: %c, \n", id, recvData->KEY, recvData->header.byPacketID);
-	
-	// 이 부분에 받은 데이터를 가지고 계산을 해서 그 결과를 클라들에게 주어야 한다.
-	// 현재는 받은 데이터를 그대로 모든 클라에게 전달한다.
-	
-	// 헤더작성
+	CS_KEY *pKey = (CS_KEY*)((CHAR*)buf);
+
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
-	SC_SYNC *pData = (SC_SYNC*)sendData;
-	pData->header.ucSize = sizeof(SC_SYNC);
-	pData->header.byPacketID = recvData->header.byPacketID;
+	SC_KEY *pData = (SC_KEY*)sendData;
+	pData->header.ucSize = sizeof(SC_KEY);
+	pData->header.byPacketID = pKey->header.byPacketID;
 	pData->ID = id;
+	pData->key = pKey->key;
 
+	// 다른 플레이어에게 키 타입과 값 전송
 	for (auto client : m_vpClientInfo) {
-		if (client) {
+		if (client && client->nID != id) {
 			transmitProcess(sendData, client->nID);
 		}
 	}
+
+	if (pKey->header.byPacketID == PAK_KEY_DOWN) {
+		printf("%d번 클라가 %d 키를 Down! \n", id, pKey->key);
+	}
+	else if (pKey->header.byPacketID == PAK_KEY_UP) {
+		printf("%d번 클라가 %d 키를 Up! \n", id, pKey->key);
+	}
+
+	return true;
+}
+
+bool CNetwork::syncData(void * buf, int id)
+{
+	
 
 	return true;
 }
