@@ -223,13 +223,10 @@ void SetTextures()
 }
 void CreateWorld()
 {
-	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-		NetworkManager.m_Players[i].m_pSheep->setSound(pSoundPackage);
-	}
 	mainSheep = NetworkManager.m_Players[0].m_pSheep;
 	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
 	// 기본 객체
-	
+
 	ground[0] = new Ground(-200, -100, -100); // z축 -100~300
 	ground[0]->pTextures = textures;
 	for (int i = 1; i < GROUND_NUM; ++i)
@@ -278,7 +275,10 @@ void CreateWorld()
 	}
 	fin.close();
 
-	mainSheep->obCnt = ob_num;
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		NetworkManager.m_Players[i].m_pSheep->setSound(pSoundPackage);
+		NetworkManager.m_Players[i].m_pSheep->obCnt = ob_num;
+	}
 	NetworkManager.m_ppObstacles = obstacles;
 
 	/*
@@ -385,36 +385,35 @@ GLvoid updateScene(int value)
 		{
 		case PLAY_MODE:
 
-			//카메라 업데이트
 			for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
+
+				//카메라 업데이트
 				auto sheep = NetworkManager.m_Players[i].m_pSheep;
 				if (!sheep->killed) {
 					sheep->pCamera->update();
 				}
-			}
-			//if(!mainSheep->killed)
-			//	mainCamera->update();
 
-			//객체 업데이트 (+스탠딩 상태 확인)
-			mainSheep->stading_index = -1;
-			for (int i = 0; i < ob_num; ++i) {
+				//if(!mainSheep->killed)
+				//	mainCamera->update();
 
-				if (mainSheep->stading_index == -1 && obstacles[i]->is_standing(mainSheep)) {
-					mainSheep->stading_index = i;
-				}
+				//객체 업데이트 (+스탠딩 상태 확인)
+				sheep->stading_index = -1;
+				for (int i = 0; i < ob_num; ++i) {
 
-				if (obstacles[i]->type == BLACK_SHEEP) {
-					obstacles[i]->update2(mainSheep, obstacles);
+					if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+						sheep->stading_index = i;
+					}
+
+					if (obstacles[i]->type == BLACK_SHEEP) {
+						obstacles[i]->update2(sheep, obstacles);
+					}
+					else {
+						obstacles[i]->update1(sheep);
+					}
 				}
-				else {
-					obstacles[i]->update1(mainSheep);
-				}
+				//양 업데이트
+				sheep->update2(ground[0], obstacles);
 			}
-			//양 업데이트
-			for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
-				NetworkManager.m_Players[i].m_pSheep->update2(ground[0],obstacles);
-			}
-			//mainSheep->update2(ground[0], obstacles);
 			break;
 		case GAME_OVER:
 			mainSheep->dead_update();

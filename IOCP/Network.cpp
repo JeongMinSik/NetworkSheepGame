@@ -137,7 +137,7 @@ bool CNetwork::acceptThread()
 
 		// 접속차단
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
-		if (m_nID >= MAX_ID_CNT) {
+		if (m_nID >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
 			cout << "[시스템] 벡터 " << MAX_ID_CNT << "칸을 초과하여 새로운 접속차단" << endl;
 			continue;
@@ -151,9 +151,16 @@ bool CNetwork::acceptThread()
 		pSocketInfo->optype = OP_TYPE::OP_RECV;
 		pSocketInfo->wsabuf.buf = pSocketInfo->IOBuf;
 		pSocketInfo->wsabuf.len = MAX_PACKET_SIZE;
-		pSocketInfo->nID = m_nID;
 
-		m_vpClientInfo[m_nID++] = pSocketInfo;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (m_vpClientInfo[i] == nullptr) {
+				pSocketInfo->nID = i;
+				m_vpClientInfo[i] = pSocketInfo;
+				++m_nID;
+				break;
+			}
+		}
+
 		//cout << "[시스템] " << pSocketInfo->nID << "번 클라 접속! IP주소:" << inet_ntoa(clientAddr.sin_addr) << ", 포트번호:" << ntohs(clientAddr.sin_port) << endl;
 
 		// 소켓과 입출력 완료 포트 연결
@@ -307,6 +314,7 @@ bool CNetwork::Login(int id)
 
 bool CNetwork::Logout(int id)
 {
+	m_nID--;
 	// 레디상태 해제
 	if (m_vpClientInfo[id]->isReady) {
 		m_vpClientInfo[id]->isReady = false;

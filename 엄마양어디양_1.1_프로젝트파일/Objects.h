@@ -89,7 +89,7 @@ struct Sheep : public Object {
 	
 };
 struct Box : public Object {
-	int org_x, org_y, org_z;
+	float org_x, org_y, org_z;
 	Box(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Box();
 	virtual void draw() override final;
@@ -99,14 +99,14 @@ struct Box : public Object {
 struct Scissors : public Object {
 	float org_x, org_y, org_z;
 	int Rotate_y;
-	int scissor_rot;
+	float scissor_rot;
 	Scissors(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Scissors();
 	virtual void draw() override final;
 	virtual void update1(Sheep* sheep);
 };
 struct Pumkin : public Object {
-	int org_y;
+	float org_y;
 	Pumkin(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Pumkin();
 	virtual void draw() override final;
@@ -124,7 +124,7 @@ struct Hay : public Object
 struct Black_Sheep : public Object {
 	int view_rad; // 보는 방향
 	int tracing_distance; //추격거리
-	int org_x, org_z; // 원 위치
+	float org_x, org_z; // 원 위치
 	bool is_tracing; // 추격준비모드
 	float ouch; // 꿍한 시간
 	int wait_time; // 어리둥절 하는 시간

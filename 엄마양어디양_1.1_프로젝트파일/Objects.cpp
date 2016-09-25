@@ -465,388 +465,401 @@ void Sheep::draw()
 		glPopMatrix();
 	}
 void Sheep::update2(const Ground* ground, Object* obstacles[])
+{
+	//엔딩
+	if (*pGameMode != ENDING_MODE && x > ENDING_X)
 	{
-		//엔딩
-		if (*pGameMode != ENDING_MODE && x > ENDING_X)
+		*pGameMode = ENDING_MODE;
+		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CLEAR_BGM], 0, &pSound->Channel[CLEAR_BGM]);
+	}
+
+	// 바라보는 방향
+	if (state[RIGHT_STATE])
+	{
+		last_view = 0;
+		if (state[UP_STATE]) last_view -= 45;
+		if (state[DOWN_STATE]) last_view += 45;
+	}
+	else if (state[LEFT_STATE])
+	{
+		last_view = 180;
+		if (state[UP_STATE]) last_view += 45;
+		if (state[DOWN_STATE]) last_view -= 45;
+	}
+	else if (state[DOWN_STATE])
+		last_view = 90;
+	else if (state[UP_STATE])
+		last_view = 270;
+
+	//지푸라기 안쪽 상태
+	for (int i = 0; i < obCnt; ++i)
+	{
+		if (obstacles[i]->type == HAY
+			&& obstacles[i]->is_inside(this))
 		{
-			*pGameMode = ENDING_MODE;
-			FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
-			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CLEAR_BGM], 0, &pSound->Channel[CLEAR_BGM]);
+			is_in_hay = true;
+			break;
 		}
+		is_in_hay = false;
+	}
 
-		// 바라보는 방향
-		if (state[RIGHT_STATE])
+	//무적상태
+	if (is_invincible) {
+		(cur_invicible_time % 20) ? pCamera->canvas_size += 0.4*DELTA_TIME : pCamera->canvas_size -= 0.4 * DELTA_TIME;
+		cur_invicible_time += DELTA_TIME;
+		if (cur_invicible_time >= max_invicible_time) {
+			is_invincible = false;
+			is_under = false;
+			cur_invicible_time = 0;
+		}
+	}
+
+	//스탠딩 상태
+	if (stading_index >= 0) {
+
+		// 추가 이동속도 변경
+		if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
+			y_additional_speed = obstacles[stading_index]->speed;
+		else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
+			minus_height = jump_height *0.5;
+		if (obstacles[stading_index]->state_x == RIGHT_STATE && state[LEFT_STATE])
+			x_additional_speed = obstacles[stading_index]->speed;
+		else if (obstacles[stading_index]->state_x == LEFT_STATE && state[RIGHT_STATE])
+			x_additional_speed = obstacles[stading_index]->speed;
+		else
+			x_additional_speed = 0;
+		if (obstacles[stading_index]->state_z == UP_STATE && state[DOWN_STATE])
+			z_additional_speed = obstacles[stading_index]->speed;
+		else if (obstacles[stading_index]->state_z == DOWN_STATE && state[UP_STATE])
+			z_additional_speed = obstacles[stading_index]->speed;
+		else
+			z_additional_speed = 0;
+
+		//이동
+		if (obstacles[stading_index]->state_x == RIGHT_STATE)
 		{
-			last_view = 0;
-			if (state[UP_STATE]) last_view -= 45;
-			if (state[DOWN_STATE]) last_view += 45;
+			x += obstacles[stading_index]->speed;
+			pCamera->x += obstacles[stading_index]->speed;
 		}
-		else if (state[LEFT_STATE])
+		else if (obstacles[stading_index]->state_x == LEFT_STATE)
 		{
-			last_view = 180;
-			if (state[UP_STATE]) last_view += 45;
-			if (state[DOWN_STATE]) last_view -= 45;
+			x -= obstacles[stading_index]->speed;
+			pCamera->x -= obstacles[stading_index]->speed;
 		}
-		else if (state[DOWN_STATE])
-			last_view = 90;
-		else if (state[UP_STATE])
-			last_view = 270;
-
-		//지푸라기 안쪽 상태
-		for (int i = 0; i < obCnt; ++i)
+		if (obstacles[stading_index]->state_z == UP_STATE)
 		{
-			if (obstacles[i]->type == HAY 
-				&& obstacles[i]->is_inside(this))
-			{
-				is_in_hay = true;
-				break;
-			}
-			is_in_hay = false;
+			z += obstacles[stading_index]->speed;
 		}
-
-		//무적상태
-		if (is_invincible) {
-			(cur_invicible_time % 20) ? pCamera->canvas_size += 0.4*DELTA_TIME : pCamera->canvas_size -= 0.4 * DELTA_TIME;
-			cur_invicible_time += DELTA_TIME;
-			if (cur_invicible_time >= max_invicible_time) {
-				is_invincible = false;
-				is_under = false;
-				cur_invicible_time = 0;
-			}
+		else if (obstacles[stading_index]->state_z == DOWN_STATE)
+		{
+			z -= obstacles[stading_index]->speed;
 		}
+		if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
+		{
+			y += obstacles[stading_index]->speed;
+		}
+		else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
+		{
+			y -= obstacles[stading_index]->speed;
+		}
+	}
+	else
+	{
+		//추가 이동속력 초기화
+		x_additional_speed = z_additional_speed = 0;
+	}
 
-		//스탠딩 상태
-		if (stading_index >= 0) {
-
-			// 추가 이동속도 변경
-			if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
-				y_additional_speed = obstacles[stading_index]->speed;
-			else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
-				minus_height = jump_height *0.5;
-			if (obstacles[stading_index]->state_x == RIGHT_STATE && state[LEFT_STATE])
-				x_additional_speed = obstacles[stading_index]->speed;
-			else if (obstacles[stading_index]->state_x == LEFT_STATE && state[RIGHT_STATE])
-				x_additional_speed = obstacles[stading_index]->speed;
-			else
-				x_additional_speed = 0;
-			if (obstacles[stading_index]->state_z == UP_STATE && state[DOWN_STATE])
-				z_additional_speed = obstacles[stading_index]->speed;
-			else if (obstacles[stading_index]->state_z == DOWN_STATE && state[UP_STATE])
-				z_additional_speed = obstacles[stading_index]->speed;
-			else
-				z_additional_speed = 0;
-
-			//이동
-			if (obstacles[stading_index]->state_x == RIGHT_STATE)
-			{
-				x += obstacles[stading_index]->speed;
-				pCamera->x += obstacles[stading_index]->speed;
-			}
-			else if (obstacles[stading_index]->state_x == LEFT_STATE)
-			{
-				x -= obstacles[stading_index]->speed;
-				pCamera->x -= obstacles[stading_index]->speed;
-			}
-			if (obstacles[stading_index]->state_z == UP_STATE)
-			{
-				z += obstacles[stading_index]->speed;
-			}
-			else if (obstacles[stading_index]->state_z == DOWN_STATE)
-			{
-				z -= obstacles[stading_index]->speed;
-			}
-			if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
-			{
-				y += obstacles[stading_index]->speed;
-			}
-			else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
-			{
-				y -= obstacles[stading_index]->speed;
-			}
+	float back_distance; // 충돌 시 되돌아오는 거리값
+						 // 기본이동 및 충돌체크
+	if (state[RIGHT_STATE])
+	{
+		x += speed + x_additional_speed; pCamera->x += speed + x_additional_speed;
+		if (x + width > ground->x + ground->width *GROUND_NUM)
+		{
+			back_distance = (x + width) - (ground->x + ground->width*GROUND_NUM);
+			x -= back_distance;
+			pCamera->x -= back_distance;
 		}
 		else
 		{
-			//추가 이동속력 초기화
-			x_additional_speed = z_additional_speed = 0;
-		}
-
-		float back_distance; // 충돌 시 되돌아오는 거리값
-							 // 기본이동 및 충돌체크
-		if (state[RIGHT_STATE])
-		{
-			x += speed + x_additional_speed; pCamera->x += speed + x_additional_speed;
-			if (x + width > ground->x + ground->width *GROUND_NUM)
+			for (int i = 0; i < obCnt; ++i)
 			{
-				back_distance = (x + width) - (ground->x + ground->width*GROUND_NUM);
-				x -= back_distance;
-				pCamera->x -= back_distance;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
-						{
-							back_distance = x + width - obstacles[i]->x;
-							x -= back_distance;
-							pCamera->x -= back_distance;
-							break;
-						}
+						back_distance = x + width - obstacles[i]->x;
+						x -= back_distance;
+						pCamera->x -= back_distance;
+						break;
 					}
-					else if (obstacles[i]->type == HAY)
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
 					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							back_distance = x + width - obstacles[i]->x;
-							x -= back_distance;
-							pCamera->x -= back_distance;
-							break;
-						}
+						back_distance = x + width - obstacles[i]->x;
+						x -= back_distance;
+						pCamera->x -= back_distance;
+						break;
 					}
 				}
 			}
 		}
-		if (state[LEFT_STATE])
+	}
+	if (state[LEFT_STATE])
+	{
+		x -= (speed + x_additional_speed); pCamera->x -= (speed + x_additional_speed);
+		if (x < 0)
 		{
-			x -= (speed + x_additional_speed); pCamera->x -= (speed + x_additional_speed);
-			if (x < 0)
+			x = 0;
+			pCamera->x = 0;
+		}
+		else
+		{
+			for (int i = 0; i < obCnt; ++i)
 			{
-				x = 0;
-				pCamera->x = 0;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
-						{
-							back_distance = obstacles[i]->x + obstacles[i]->width - x;
-							x += back_distance;
-							pCamera->x += back_distance;
-							break;
-						}
+						back_distance = obstacles[i]->x + obstacles[i]->width - x;
+						x += back_distance;
+						pCamera->x += back_distance;
+						break;
 					}
-					else if (obstacles[i]->type == HAY)
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
 					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							back_distance = obstacles[i]->x + obstacles[i]->width - x;
-							x += back_distance;
-							pCamera->x += back_distance;
-							break;
-						}
+						back_distance = obstacles[i]->x + obstacles[i]->width - x;
+						x += back_distance;
+						pCamera->x += back_distance;
+						break;
 					}
 				}
 			}
 		}
-		if (state[UP_STATE] && pCamera->view_point == DOWN_VIEW)
+	}
+	if (state[UP_STATE] && pCamera->view_point == DOWN_VIEW)
+	{
+		z += (speed + z_additional_speed);
+		if (z + depth > ground->z + ground->depth - 5)
 		{
-			z += (speed + z_additional_speed);
-			if (z + depth > ground->z + ground->depth - 5)
+			back_distance = (z + depth) - (ground->z + ground->depth - 5);
+			z -= back_distance;
+		}
+		else
+		{
+			for (int i = 0; i < obCnt; ++i)
 			{
-				back_distance = (z + depth) - (ground->z + ground->depth - 5);
-				z -= back_distance;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
+						back_distance = z + depth - obstacles[i]->z;
+						z -= back_distance;
+						break;
+					}
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
+					{
+						int last_z = z - (speed + z_additional_speed);
+						if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
+						{
+							back_distance = z + depth - (obstacles[i]->z + obstacles[i]->depth);
+							z -= back_distance;
+						}
+						else
 						{
 							back_distance = z + depth - obstacles[i]->z;
 							z -= back_distance;
-							break;
 						}
-					}
-					else if (obstacles[i]->type == HAY)
-					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							int last_z = z - (speed + z_additional_speed);
-							if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
-							{
-								back_distance = z + depth - (obstacles[i]->z + obstacles[i]->depth);
-								z -= back_distance;
-							}
-							else
-							{
-								back_distance = z + depth - obstacles[i]->z;
-								z -= back_distance;
-							}
-							break;
-						}
+						break;
 					}
 				}
 			}
 		}
-		if (state[DOWN_STATE] && pCamera->view_point == DOWN_VIEW)
+	}
+	if (state[DOWN_STATE] && pCamera->view_point == DOWN_VIEW)
+	{
+		z -= (speed + z_additional_speed);
+		if (z < ground->z + 10)
 		{
-			z -= (speed + z_additional_speed);
-			if (z < ground->z + 10)
+			back_distance = ground->z - z + 10;
+			z += back_distance;
+		}
+		else
+		{
+			for (int i = 0; i < obCnt; ++i)
 			{
-				back_distance = ground->z - z + 10;
-				z += back_distance;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || (obstacles[i]->type == PUMKIN && is_under == false))
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
+						back_distance = obstacles[i]->z + obstacles[i]->depth - z;
+						z += back_distance;
+						break;
+					}
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
+					{
+						int last_z = z + (speed + z_additional_speed);
+						if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
+						{
+							back_distance = obstacles[i]->z - z;
+							z += back_distance;
+						}
+						else
 						{
 							back_distance = obstacles[i]->z + obstacles[i]->depth - z;
 							z += back_distance;
-							break;
 						}
-					}
-					else if (obstacles[i]->type == HAY)
-					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							int last_z = z + (speed + z_additional_speed);
-							if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
-							{
-								back_distance = obstacles[i]->z - z;
-								z += back_distance;
-							}
-							else
-							{
-								back_distance = obstacles[i]->z + obstacles[i]->depth - z;
-								z += back_distance;
-							}
-							break;
-						}
+						break;
 					}
 				}
 			}
 		}
-		if (state[JUMP_UP_STATE])
+	}
+	if (state[JUMP_UP_STATE])
+	{
+		y += (speed + y_additional_speed);
+		if (y > org_y + jump_height - minus_height)
 		{
-			y += (speed + y_additional_speed);
-			if (y > org_y + jump_height - minus_height)
+			state[JUMP_UP_STATE] = false;
+			state[JUMP_DOWN_STATE] = true;
+		}
+		else
+		{
+			for (int i = 0; i < obCnt; ++i)
 			{
-				state[JUMP_UP_STATE] = false;
-				state[JUMP_DOWN_STATE] = true;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BLACK_SHEEP || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
+						back_distance = y + height - obstacles[i]->y;
+						y -= back_distance;
+						state[JUMP_UP_STATE] = false;
+						state[JUMP_DOWN_STATE] = true;
+						break;
+					}
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
+					{
+						int last_y = y - (speed + y_additional_speed);
+						if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
+						{
+							y = last_y;
+							state[JUMP_UP_STATE] = false;
+							state[JUMP_DOWN_STATE] = true;
+						}
+						else
 						{
 							back_distance = y + height - obstacles[i]->y;
 							y -= back_distance;
 							state[JUMP_UP_STATE] = false;
 							state[JUMP_DOWN_STATE] = true;
-							break;
 						}
-					}
-					else if (obstacles[i]->type == HAY)
-					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							int last_y = y - (speed + y_additional_speed);
-							if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
-							{
-								y = last_y;
-								state[JUMP_UP_STATE] = false;
-								state[JUMP_DOWN_STATE] = true;
-							}
-							else
-							{
-								back_distance = y + height - obstacles[i]->y;
-								y -= back_distance;
-								state[JUMP_UP_STATE] = false;
-								state[JUMP_DOWN_STATE] = true;
-							}
-							break;
-						}
+						break;
 					}
 				}
 			}
 		}
-		else if (state[JUMP_DOWN_STATE])
+	}
+	else if (state[JUMP_DOWN_STATE])
+	{
+		//추가속도 및 점프감소력 초기화
+		y_additional_speed = minus_height = 0;
+		y -= speed*1.3;
+		if (y < 0)
 		{
-			//추가속도 및 점프감소력 초기화
-			y_additional_speed = minus_height = 0;
-			y -= speed*1.3;
-			if (y < 0)
+			y = 0;
+			state[JUMP_DOWN_STATE] = false;
+		}
+		else
+		{
+			for (int i = 0; i < obCnt; ++i)
 			{
-				y = 0;
-				state[JUMP_DOWN_STATE] = false;
-			}
-			else
-			{
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
+						back_distance = obstacles[i]->y + obstacles[i]->height - y;
+						y += back_distance;
+						state[JUMP_DOWN_STATE] = false;
+						break;
+					}
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					if (obstacles[i]->AABB_surface(this))
+					{
+						int last_y = y + speed*1.3;
+						if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
+						{
+							y = last_y;
+							state[JUMP_DOWN_STATE] = false;
+						}
+						else
 						{
 							back_distance = obstacles[i]->y + obstacles[i]->height - y;
 							y += back_distance;
 							state[JUMP_DOWN_STATE] = false;
-							break;
 						}
+						break;
 					}
-					else if (obstacles[i]->type == HAY)
-					{
-						if (obstacles[i]->AABB_surface(this))
-						{
-							int last_y = y + speed*1.3;
-							if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
-							{
-								y = last_y;
-								state[JUMP_DOWN_STATE] = false;
-							}
-							else
-							{
-								back_distance = obstacles[i]->y + obstacles[i]->height - y;
-								y += back_distance;
-								state[JUMP_DOWN_STATE] = false;
-							}
-							break;
-						}
-					}
-					else if (obstacles[i]->type == BLACK_SHEEP && AABB(obstacles[i]))
-					{
-						FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[KILL_E], 0, &pSound->Channel[KILL_E]);
-						obstacles[i]->killed = true;
-						state[JUMP_DOWN_STATE] = false;
-						state[JUMP_UP_STATE] = true;
-						org_y = y;
-					}
+				}
+				else if (obstacles[i]->type == BLACK_SHEEP && AABB(obstacles[i]))
+				{
+					FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[KILL_E], 0, &pSound->Channel[KILL_E]);
+					obstacles[i]->killed = true;
+					state[JUMP_DOWN_STATE] = false;
+					state[JUMP_UP_STATE] = true;
+					org_y = y;
 				}
 			}
 		}
+	}
 
-		//중력
-		if (state[JUMP_UP_STATE] == false && state[JUMP_DOWN_STATE] == false && y > 0)
+	//중력
+	if (state[JUMP_UP_STATE] == false && state[JUMP_DOWN_STATE] == false && y > 0)
+	{
+		//추가속도 및 점프감소력 초기화
+		y_additional_speed = minus_height = 0;
+		state[GRAVITY] = true;
+		y -= speed*1.3;
+		if (y <= 0)
 		{
-			//추가속도 및 점프감소력 초기화
-			y_additional_speed = minus_height = 0;
-			state[GRAVITY] = true;
-			y -= speed*1.3;
-			if (y <= 0)
+			y = 0;
+			state[GRAVITY] = false;
+		}
+		else {
+			for (int i = 0; i < obCnt; ++i)
 			{
-				y = 0;
-				state[GRAVITY] = false;
-			}
-			else {
-				for (int i = 0; i < obCnt; ++i)
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN)
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
+						back_distance = obstacles[i]->y + obstacles[i]->height - y;
+						y += back_distance;
+						state[GRAVITY] = false;
+						break;
+					}
+				}
+				else if (obstacles[i]->type == HAY)
+				{
+					int last_y = y + speed*1.3;
+					if (obstacles[i]->AABB_surface(this))
+					{
+						if (last_y < obstacles[i]->y || last_y + height > obstacles[i]->y + obstacles[i]->height)
 						{
 							back_distance = obstacles[i]->y + obstacles[i]->height - y;
 							y += back_distance;
@@ -854,34 +867,21 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 							break;
 						}
 					}
-					else if (obstacles[i]->type == HAY)
-					{
-						int last_y = y + speed*1.3;
-						if (obstacles[i]->AABB_surface(this))
-						{
-							if (last_y < obstacles[i]->y || last_y + height > obstacles[i]->y + obstacles[i]->height)
-							{
-								back_distance = obstacles[i]->y + obstacles[i]->height - y;
-								y += back_distance;
-								state[GRAVITY] = false;
-								break;
-							}
-						}
-					}
-					else if (obstacles[i]->type == BLACK_SHEEP && AABB(obstacles[i]))
-					{
-						FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[KILL_E], 0, &pSound->Channel[KILL_E]);
-						obstacles[i]->killed = true;
-						state[JUMP_UP_STATE] = true;
-						state[GRAVITY] = false;
-						org_y = y;
-					}
+				}
+				else if (obstacles[i]->type == BLACK_SHEEP && AABB(obstacles[i]))
+				{
+					FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[KILL_E], 0, &pSound->Channel[KILL_E]);
+					obstacles[i]->killed = true;
+					state[JUMP_UP_STATE] = true;
+					state[GRAVITY] = false;
+					org_y = y;
 				}
 			}
 		}
-		else if (y == 0) state[GRAVITY] = false;
-
 	}
+	else if (y == 0) state[GRAVITY] = false;
+
+}
 void Sheep::special_key(int key, Object* obstacles[])
 {
 	if (key == GLUT_KEY_RIGHT) {

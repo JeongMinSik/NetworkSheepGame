@@ -201,13 +201,9 @@ void CNetwork::packetUnpacker()
 		m_nPlayerCount = MAX_PLAYER_CNT;
 
 		// 나 자신(인덱스0)을 제외한 타 플레이어들 아이디번호 저장
-		for (int i = 1; i < m_nPlayerCount; ++i) {
-			for (int j = 0; j < m_nPlayerCount; ++j) {
-				printf("m_Players[%d].m_nID: %d \n", i, m_Players[i].m_nID);
-				if (m_Players[0].m_nID != start.ID_LIST[j]) {
-					m_Players[i].m_nID = start.ID_LIST[j];
-					break;
-				}
+		for (int i = 0, j = 1; i < m_nPlayerCount; ++i) {
+			if (start.ID_LIST[i] != m_Players[0].m_nID) {
+				m_Players[j++].m_nID = start.ID_LIST[i];
 			}
 		}
 

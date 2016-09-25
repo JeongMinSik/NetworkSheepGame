@@ -7,7 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
-#define		MAX_PLAYER_CNT			2
+#define		MAX_PLAYER_CNT			3
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -20,8 +20,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 // 단위는 밀리세컨드, FPS 62.5
-#define FIXED_FRAME_TIME	16   // 최저프레임시간
-#define MAX_FRAME_TIME		250  // 뻗는 걸 막기 위한 최대프레임시간
+#define FIXED_FRAME_TIME	1000 / 50   // 최저프레임시간
+#define MAX_FRAME_TIME		300  // 뻗는 걸 막기 위한 최대프레임시간
 #define DELTA_TIME			10.0	 // 쪼개서 계산할 단위
 
 
