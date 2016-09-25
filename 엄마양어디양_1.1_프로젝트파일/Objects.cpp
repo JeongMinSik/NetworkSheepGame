@@ -26,14 +26,14 @@ void Camera::keyboard(unsigned char key)
 		}
 
 	}
-void Camera::update()
+void Camera::update(float frameTime)
 {
 	// 카메라 회전
 	if (is_changing)
 	{
 		if (view_point == FRONT_VIEW)
 		{
-			view_radius -= 0.2f * DELTA_TIME;
+			view_radius -= 0.2f * frameTime;
 			if (view_radius <= -90)
 			{
 				is_changing = false;
@@ -43,7 +43,7 @@ void Camera::update()
 		}
 		else if (view_point == DOWN_VIEW)
 		{
-			view_radius += 0.2f * DELTA_TIME;
+			view_radius += 0.2f * frameTime;
 			if (view_radius >= 0)
 			{
 				is_changing = false;
@@ -137,7 +137,7 @@ void Ground::draw() {
 	}
 
 
-Object::Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*DELTA_TIME*0.03), max_x(m_x), max_y(m_y), max_z(m_z) {}
+Object::Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*0.03), max_x(m_x), max_y(m_y), max_z(m_z) {}
 bool Object::AABB(const Object* other)
 {
 	if (x + width <= other->x) return false;
@@ -211,261 +211,260 @@ void Sheep::get_hurt()
 		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GET_HURT_E], 0, &pSound->Channel[GET_HURT_E]);
 	}
 }
-void Sheep::dead_update()
+void Sheep::dead_update(float frameTime)
 {
 	pCamera->is_changing = false;
 
 	//죽은 양
-	if (pCamera->view_radius != -40)
-		(pCamera->view_radius < -40) ? pCamera->view_radius += 0.25*DELTA_TIME : pCamera->view_radius -= 0.25*DELTA_TIME;
+	if ( abs(pCamera->view_radius+40.0) > 2.0)
+		(pCamera->view_radius < -40) ? pCamera->view_radius += 0.25*frameTime : pCamera->view_radius -= 0.25*frameTime;
 	else if (y <= 500)
 	{
-		y += 0.5f*DELTA_TIME;
+		y += speed*frameTime;
 
-		if (y > 500)
-		{
+		if (y > 500){
 			killed = true;
 		}
 	}
 }
-void Sheep::ending_update()
+void Sheep::ending_update(float frameTime)
+{
+
+	pCamera->is_changing = false;
+
+	static int dir = 1, jump_cnt;
+	static bool bsound = true;
+	const int JUMP_MAX = 3;
+
+	// 카메라이동
+	if (pCamera->view_radius != -20)
 	{
+		(pCamera->view_radius < -20) ? pCamera->view_radius += 0.5*frameTime : pCamera->view_radius -= 0.5*frameTime;
+		dir = 1, jump_cnt = 0;
+		bsound = true;
+	}
 
-		pCamera->is_changing = false;
+	// 이동
+	int aim_x = 9600, aim_z = 78;
+	int vx, vz; // 이동량
+	float d = sqrt(float(aim_x - x)*float(aim_x - x) + float(aim_z - z)*float(aim_z - z));
 
-		static int dir = 1, jump_cnt;
-		static bool bsound = true;
-		const int JUMP_MAX = 3;
+	last_view = -atan2(aim_z - z, aim_x - x) * 180 / 3.1415926535;
 
-		// 카메라이동
-		if (pCamera->view_radius != -20)
+	if (d > speed)
+	{
+		vx = (aim_x - x) / d*speed;
+		vz = (aim_z - z) / d*speed;
+		y -= speed;
+		if (y < 0) { y = 0; }
+	}
+	else
+	{
+		vx = 0;
+		vz = 0;
+		last_view = 0;
+	}
+	x += vx;
+	pCamera->x += vx;
+	z += vz;
+
+	if (vx == 0 && vz == 0 && jump_cnt < JUMP_MAX)
+	{
+		if (bsound)
 		{
-			(pCamera->view_radius < -20) ? pCamera->view_radius += 0.5*DELTA_TIME : pCamera->view_radius -= 0.5*DELTA_TIME;
-			dir = 1, jump_cnt = 0;
+			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[JUMP_E], 0, &pSound->Channel[JUMP_E]);
+			bsound = false;
+		}
+
+		y += speed*dir;
+		if (y > jump_height)
+			dir = -1;
+		if (y < 0)
+		{
 			bsound = true;
+			y = 0;
+			dir = 1;
+			++jump_cnt;
 		}
-
-		// 이동
-		int aim_x = 9600, aim_z = 78;
-		int vx, vz; // 이동량
-		float d = sqrt(float(aim_x - x)*float(aim_x - x) + float(aim_z - z)*float(aim_z - z));
-
-		last_view = -atan2(aim_z - z, aim_x - x) * 180 / 3.1415926535;
-
-		if (d > speed)
-		{
-			vx = (aim_x - x) / d*speed;
-			vz = (aim_z - z) / d*speed;
-			y -= speed;
-			if (y < 0) { y = 0; }
-		}
-		else
-		{
-			vx = 0;
-			vz = 0;
-			last_view = 0;
-		}
-		x += vx;
-		pCamera->x += vx;
-		z += vz;
-
-		if (vx == 0 && vz == 0 && jump_cnt < JUMP_MAX)
-		{
-			if (bsound)
-			{
-				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[JUMP_E], 0, &pSound->Channel[JUMP_E]);
-				bsound = false;
-			}
-
-			y += speed*dir;
-			if (y > jump_height)
-				dir = -1;
-			if (y < 0)
-			{
-				bsound = true;
-				y = 0;
-				dir = 1;
-				++jump_cnt;
-			}
-		}
-		else if (jump_cnt == JUMP_MAX) { ending_finished = true; }
-
 	}
-void Sheep::draw() 
+	else if (jump_cnt == JUMP_MAX) { ending_finished = true; }
+
+}
+void Sheep::draw()
+{
+	glPushMatrix();
+	glTranslated((x + width / 2), (y + height / 2) + 5, z + depth / 2);
+	if (last_view == 0)
+	{
+		glTranslated(-5, 0, 0);
+	}
+	else if (last_view == 180)
+	{
+		glTranslated(5, 0, 0);
+	}
+	else if (last_view == 90)
+	{
+		glTranslated(0, 0, 6);
+	}
+	else if (last_view == 270)
+	{
+		glTranslated(0, 0, -6);
+	}
+	glRotated(last_view, 0, 1, 0);
+	glScalef(0.25, 0.3, 0.3);
+
+	//호박에 깔림
+	if (is_under)
+	{
+		glScalef(1, 0.5, 1);
+		glTranslated(0, -60, 0);
+	}
+
+	glPushMatrix();
+	glColor3f(1, 0.9, 0.9);
+	glTranslatef(70, -20, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	glPushMatrix();
+	glColor3f(1, 0.8, 0.8);
+	glTranslatef(10, -20, 0);
+	glScalef(2, 1, 1);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	// 몸통이
+	glPushMatrix();
+	glColor3f(1, 1, 1);
+
+	//무적애니메이션
+	if (is_invincible) {
+		if (cur_invicible_time % 2 == 0) {
+			glColor3f(1, 0, 0);
+		}
+		else {
+			glColor3f(1, 1, 1);
+		}
+	}
+
+	glTranslatef(30, 0, 30);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(-50, 0, 0);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(-20, -10, 0);
+	glutSolidSphere(40, 16, 16);
+
+	glTranslatef(-10, -20, 0);
+	glutSolidSphere(40, 16, 16);
+
+	glTranslatef(30, -10, 0);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(40, 0, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(30, 0, -30);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(-50, 0, 0);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(-20, -10, 0);
+	glutSolidSphere(40, 16, 16);
+
+	glTranslatef(10, -20, 0);
+	glutSolidSphere(40, 16, 16);
+
+	glTranslatef(30, 0, 0);
+	glutSolidSphere(50, 16, 16);
+
+	glTranslatef(40, 0, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-40, -20, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(30, 10, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-50, -30, 0);
+	glutSolidSphere(50, 16, 16);
+	glPopMatrix();
+
+	// 눈
+	glPushMatrix();
+	if (is_invincible)
 	{
 		glPushMatrix();
-		glTranslated((x + width / 2), (y + height / 2) + 5, z + depth / 2);
-		if (last_view == 0)
-		{
-			glTranslated(-5, 0, 0);
-		}
-		else if (last_view == 180)
-		{
-			glTranslated(5, 0, 0);
-		}
-		else if (last_view == 90)
-		{
-			glTranslated(0, 0, 6);
-		}
-		else if (last_view == 270)
-		{
-			glTranslated(0, 0, -6);
-		}
-		glRotated(last_view, 0, 1, 0);
-		glScalef(0.25, 0.3, 0.3);
-
-		//호박에 깔림
-		if (is_under)
-		{
-			glScalef(1, 0.5, 1);
-			glTranslated(0, -60, 0);
-		}
-
-		glPushMatrix();
-		glColor3f(1, 0.9, 0.9);
-		glTranslatef(70, -20, 0);
-		glutSolidSphere(50, 16, 16);
+		glColor3f(0, 0, 0);
+		glRotated(-3, 0, 1, 0);
+		glTranslatef(90, 0, 35);
+		glRotated(45, 0, 0, 1);
+		glScaled(1, 4, 1);
+		glutSolidCube(5);
 		glPopMatrix();
 
 		glPushMatrix();
-		glColor3f(1, 0.8, 0.8);
-		glTranslatef(10, -20, 0);
-		glScalef(2, 1, 1);
-		glutSolidSphere(50, 16, 16);
+		glColor3f(0, 0, 0);
+		glRotated(-3, 0, 1, 0);
+		glTranslatef(90, 0, 38);
+		glRotated(-45, 0, 0, 1);
+		glScaled(1, 4, 1);
+		glutSolidCube(5);
 		glPopMatrix();
-
-		// 몸통이
+		glTranslated(0, 0, -85);
 		glPushMatrix();
-		glColor3f(1, 1, 1);
-
-		//무적애니메이션
-		if (is_invincible) {
-			if (cur_invicible_time % 20 == 0) {
-				glColor3f(1, 0, 0);
-			}
-			else {
-				glColor3f(1, 1, 1);
-			}
-		}
-
-		glTranslatef(30, 0, 30);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(-50, 0, 0);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(-20, -10, 0);
-		glutSolidSphere(40, 16, 16);
-
-		glTranslatef(-10, -20, 0);
-		glutSolidSphere(40, 16, 16);
-
-		glTranslatef(30, -10, 0);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(40, 0, 0);
-		glutSolidSphere(50, 16, 16);
+		glColor3f(0, 0, 0);
+		glRotated(-3, 0, 1, 0);
+		glTranslatef(90, 0, 35);
+		glRotated(45, 0, 0, 1);
+		glScaled(1, 4, 1);
+		glutSolidCube(5);
 		glPopMatrix();
 
 		glPushMatrix();
-		glTranslatef(30, 0, -30);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(-50, 0, 0);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(-20, -10, 0);
-		glutSolidSphere(40, 16, 16);
-
-		glTranslatef(10, -20, 0);
-		glutSolidSphere(40, 16, 16);
-
-		glTranslatef(30, 0, 0);
-		glutSolidSphere(50, 16, 16);
-
-		glTranslatef(40, 0, 0);
-		glutSolidSphere(50, 16, 16);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslatef(-40, -20, 0);
-		glutSolidSphere(50, 16, 16);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslatef(30, 10, 0);
-		glutSolidSphere(50, 16, 16);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslatef(-50, -30, 0);
-		glutSolidSphere(50, 16, 16);
-		glPopMatrix();
-
-		// 눈
-		glPushMatrix();
-		if (is_invincible)
-		{
-			glPushMatrix();
-			glColor3f(0, 0, 0);
-			glRotated(-3, 0, 1, 0);
-			glTranslatef(90, 0, 35);
-			glRotated(45, 0, 0, 1);
-			glScaled(1, 4, 1);
-			glutSolidCube(5);
-			glPopMatrix();
-
-			glPushMatrix();
-			glColor3f(0, 0, 0);
-			glRotated(-3, 0, 1, 0);
-			glTranslatef(90, 0, 38);
-			glRotated(-45, 0, 0, 1);
-			glScaled(1, 4, 1);
-			glutSolidCube(5);
-			glPopMatrix();
-			glTranslated(0, 0, -85);
-			glPushMatrix();
-			glColor3f(0, 0, 0);
-			glRotated(-3, 0, 1, 0);
-			glTranslatef(90, 0, 35);
-			glRotated(45, 0, 0, 1);
-			glScaled(1, 4, 1);
-			glutSolidCube(5);
-			glPopMatrix();
-
-			glPushMatrix();
-			glColor3f(0, 0, 0);
-			glRotated(-3, 0, 1, 0);
-			glTranslatef(90, 0, 38);
-			glRotated(-45, 0, 0, 1);
-			glScaled(1, 4, 1);
-			glutSolidCube(5);
-			glPopMatrix();
-		}
-		else
-		{
-			glColor3f(0, 0, 0);
-			glTranslatef(90, 0, 35);
-			glutSolidSphere(7, 16, 16);
-			glTranslatef(0, 0, -70);
-			glutSolidSphere(7, 16, 16);
-		}
-		glPopMatrix();
-
-		//천사링
-		if (iGameMode == GAME_OVER)
-		{
-			glPushMatrix();
-			glColor3f(0.97, 0.97, 0.97);
-			glTranslatef(50, 100, 0);
-			glRotated(90, 1, 0, 0);
-			glutSolidTorus(10, 40, 20, 20);
-			glPopMatrix();
-		}
-
+		glColor3f(0, 0, 0);
+		glRotated(-3, 0, 1, 0);
+		glTranslatef(90, 0, 38);
+		glRotated(-45, 0, 0, 1);
+		glScaled(1, 4, 1);
+		glutSolidCube(5);
 		glPopMatrix();
 	}
-void Sheep::update2(const Ground* ground, Object* obstacles[])
+	else
+	{
+		glColor3f(0, 0, 0);
+		glTranslatef(90, 0, 35);
+		glutSolidSphere(7, 16, 16);
+		glTranslatef(0, 0, -70);
+		glutSolidSphere(7, 16, 16);
+	}
+	glPopMatrix();
+
+	//천사링
+	if (iGameMode == GAME_OVER)
+	{
+		glPushMatrix();
+		glColor3f(0.97, 0.97, 0.97);
+		glTranslatef(50, 100, 0);
+		glRotated(90, 1, 0, 0);
+		glutSolidTorus(10, 40, 20, 20);
+		glPopMatrix();
+	}
+
+	glPopMatrix();
+}
+void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 {
 	//엔딩
 	if (iGameMode != ENDING_MODE && x > ENDING_X)
@@ -507,8 +506,8 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 
 	//무적상태
 	if (is_invincible) {
-		(cur_invicible_time % 20) ? pCamera->canvas_size += 0.4*DELTA_TIME : pCamera->canvas_size -= 0.4 * DELTA_TIME;
-		cur_invicible_time += DELTA_TIME;
+		//(cur_invicible_time % 2) ? pCamera->canvas_size += 0.4*frameTime : pCamera->canvas_size -= 0.4 * frameTime;
+		cur_invicible_time += frameTime;
 		if (cur_invicible_time >= max_invicible_time) {
 			is_invincible = false;
 			is_under = false;
@@ -540,29 +539,29 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 		//이동
 		if (obstacles[stading_index]->state_x == RIGHT_STATE)
 		{
-			x += obstacles[stading_index]->speed;
-			pCamera->x += obstacles[stading_index]->speed;
+			x += obstacles[stading_index]->speed*frameTime;
+			pCamera->x += obstacles[stading_index]->speed*frameTime;
 		}
 		else if (obstacles[stading_index]->state_x == LEFT_STATE)
 		{
-			x -= obstacles[stading_index]->speed;
-			pCamera->x -= obstacles[stading_index]->speed;
+			x -= obstacles[stading_index]->speed*frameTime;
+			pCamera->x -= obstacles[stading_index]->speed*frameTime;
 		}
 		if (obstacles[stading_index]->state_z == UP_STATE)
 		{
-			z += obstacles[stading_index]->speed;
+			z += obstacles[stading_index]->speed*frameTime;
 		}
 		else if (obstacles[stading_index]->state_z == DOWN_STATE)
 		{
-			z -= obstacles[stading_index]->speed;
+			z -= obstacles[stading_index]->speed*frameTime;
 		}
 		if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
 		{
-			y += obstacles[stading_index]->speed;
+			y += obstacles[stading_index]->speed*frameTime;
 		}
 		else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
 		{
-			y -= obstacles[stading_index]->speed;
+			y -= obstacles[stading_index]->speed*frameTime;
 		}
 	}
 	else
@@ -575,7 +574,8 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 						 // 기본이동 및 충돌체크
 	if (state[RIGHT_STATE])
 	{
-		x += speed + x_additional_speed; pCamera->x += speed + x_additional_speed;
+		x += (speed + x_additional_speed)*frameTime; 
+		pCamera->x += (speed + x_additional_speed)*frameTime;
 		if (x + width > ground->x + ground->width *GROUND_NUM)
 		{
 			back_distance = (x + width) - (ground->x + ground->width*GROUND_NUM);
@@ -611,7 +611,8 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 	}
 	if (state[LEFT_STATE])
 	{
-		x -= (speed + x_additional_speed); pCamera->x -= (speed + x_additional_speed);
+		x -= (speed + x_additional_speed)*frameTime; 
+		pCamera->x -= (speed + x_additional_speed)*frameTime;
 		if (x < 0)
 		{
 			x = 0;
@@ -646,7 +647,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 	}
 	if (state[UP_STATE] && pCamera->view_point == DOWN_VIEW)
 	{
-		z += (speed + z_additional_speed);
+		z += (speed + z_additional_speed)*frameTime;
 		if (z + depth > ground->z + ground->depth - 5)
 		{
 			back_distance = (z + depth) - (ground->z + ground->depth - 5);
@@ -669,7 +670,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 				{
 					if (obstacles[i]->AABB_surface(this))
 					{
-						int last_z = z - (speed + z_additional_speed);
+						int last_z = z - (speed + z_additional_speed)*frameTime;
 						if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
 						{
 							back_distance = z + depth - (obstacles[i]->z + obstacles[i]->depth);
@@ -688,7 +689,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 	}
 	if (state[DOWN_STATE] && pCamera->view_point == DOWN_VIEW)
 	{
-		z -= (speed + z_additional_speed);
+		z -= (speed + z_additional_speed)*frameTime;
 		if (z < ground->z + 10)
 		{
 			back_distance = ground->z - z + 10;
@@ -711,7 +712,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 				{
 					if (obstacles[i]->AABB_surface(this))
 					{
-						int last_z = z + (speed + z_additional_speed);
+						int last_z = z + (speed + z_additional_speed)*frameTime;
 						if (last_z >= obstacles[i]->z && last_z + depth <= obstacles[i]->z + obstacles[i]->depth)
 						{
 							back_distance = obstacles[i]->z - z;
@@ -730,7 +731,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 	}
 	if (state[JUMP_UP_STATE])
 	{
-		y += (speed + y_additional_speed);
+		y += (speed + y_additional_speed)*frameTime;
 		if (y > org_y + jump_height - minus_height)
 		{
 			state[JUMP_UP_STATE] = false;
@@ -755,7 +756,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 				{
 					if (obstacles[i]->AABB_surface(this))
 					{
-						int last_y = y - (speed + y_additional_speed);
+						int last_y = y - (speed + y_additional_speed)*frameTime;
 						if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
 						{
 							y = last_y;
@@ -779,7 +780,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 	{
 		//추가속도 및 점프감소력 초기화
 		y_additional_speed = minus_height = 0;
-		y -= speed*1.3;
+		y -= speed*1.2*frameTime;
 		if (y < 0)
 		{
 			y = 0;
@@ -803,7 +804,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 				{
 					if (obstacles[i]->AABB_surface(this))
 					{
-						int last_y = y + speed*1.3;
+						int last_y = y + speed*1.2*frameTime;
 						if (last_y >= obstacles[i]->y && last_y + height <= obstacles[i]->y + obstacles[i]->height)
 						{
 							y = last_y;
@@ -836,7 +837,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 		//추가속도 및 점프감소력 초기화
 		y_additional_speed = minus_height = 0;
 		state[GRAVITY] = true;
-		y -= speed*1.3;
+		y -= speed*1.2*frameTime;
 		if (y <= 0)
 		{
 			y = 0;
@@ -857,7 +858,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[])
 				}
 				else if (obstacles[i]->type == HAY)
 				{
-					int last_y = y + speed*1.3;
+					int last_y = y + speed*1.2*frameTime;
 					if (obstacles[i]->AABB_surface(this))
 					{
 						if (last_y < obstacles[i]->y || last_y + height > obstacles[i]->y + obstacles[i]->height)
@@ -1033,91 +1034,91 @@ bool Box::is_standing(const Object* other)
 		if (z >= other->z + other->depth) return false;
 		return true;
 	}
-void Box::update1(Sheep** sheeps)
+void Box::update1(Sheep** sheeps,float frameTime)
 	{
 		if (state_x == RIGHT_STATE)
 		{
-			x += speed;
+			x += speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])){
-					sheeps[i]->x += speed;
-					pCamera->x += speed;
+					sheeps[i]->x += speed*frameTime;
+					pCamera->x += speed*frameTime;
 				}
 			}
 
 			if (abs(x - org_x) >= abs(max_x)) {
 				state_x = LEFT_STATE;
-				x -= 2 * speed;
+				x -= 2 * speed*frameTime;
 			}
 		}
 		if (state_x == LEFT_STATE)
 		{
-			x -= speed;
+			x -= speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->x -= speed;
-					pCamera->x -= speed;
+					sheeps[i]->x -= speed*frameTime;
+					pCamera->x -= speed*frameTime;
 				}
 			}
 			if (abs(x - org_x) >= abs(max_x)) {
 				state_x = RIGHT_STATE;
-				x += 2 * speed;
+				x += 2 * speed*frameTime;
 			}
 		}
 		if (state_z == UP_STATE)
 		{
-			z += speed;
+			z += speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->z += speed;
+					sheeps[i]->z += speed*frameTime;
 				}
 			}
 			if (abs(z - org_z) >= abs(max_z))
 			{
 				state_z = DOWN_STATE;
-				z -= 2 * speed;
+				z -= 2 * speed*frameTime;
 			}
 		}
 		else if (state_z == DOWN_STATE)
 		{
-			z -= speed;
+			z -= speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->z -= speed;
+					sheeps[i]->z -= speed*frameTime;
 				}
 			}
 			if (abs(z - org_z) >= abs(max_z))
 			{
 				state_z = UP_STATE;
-				z += 2 * speed;
+				z += 2 * speed*frameTime;
 			}
 		}
 		if (state_y == JUMP_UP_STATE)
 		{
-			y += speed;
+			y += speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->y += speed;
+					sheeps[i]->y += speed*frameTime;
 				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
 				state_y = JUMP_DOWN_STATE;
-				y -= 2 * speed;
+				y -= 2 * speed*frameTime;
 			}
 		}
 		else if (state_y == JUMP_DOWN_STATE)
 		{
-			y -= speed;
+			y -= speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->y -= speed;
+					sheeps[i]->y -= speed*frameTime;
 				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
 				state_y = JUMP_UP_STATE;
-				y += 2 * speed;
+				y += 2 * speed*frameTime;
 			}
 		}
 	}
@@ -1127,7 +1128,7 @@ Scissors::Scissors(int t, float x, float y, float z, float sp = 0, float m_x = 0
 		max_x = m_x;	max_y = m_y;	max_z = m_z;
 		org_x = x;		org_y = y;		org_z = z;
 		Rotate_y = 0;
-		scissor_rot = 4;
+		scissor_rot = 0.1;
 		if (max_x > 0) state_x = RIGHT_STATE;
 		else if (max_x < 0) state_x = LEFT_STATE;
 		else state_x = STOP_STATE;
@@ -1230,46 +1231,46 @@ void Scissors::draw()
 
 		glPopMatrix();
 	}
-void Scissors::update1(Sheep** sheeps)
-	{
-		Rotate_y += scissor_rot;
-		if (Rotate_y >= 15)
-			scissor_rot *= -1;
-		if (Rotate_y <= -5)
-			scissor_rot *= -1;
+void Scissors::update1(Sheep** sheeps, float frameTime)
+{
+	Rotate_y += scissor_rot*frameTime;
+	if (Rotate_y >= 15)
+		scissor_rot *= -1;
+	if (Rotate_y <= -5)
+		scissor_rot *= -1;
 
-		if (state_x == RIGHT_STATE)
+	if (state_x == RIGHT_STATE)
+	{
+		x += speed*frameTime;
+		if (abs(x - org_x) >= abs(max_x)) state_x = LEFT_STATE;
+	}
+	if (state_x == LEFT_STATE)
+	{
+		x -= speed*frameTime;
+		if (abs(x - org_x) >= abs(max_x)) state_x = RIGHT_STATE;
+	}
+	if (state_z == UP_STATE)
+	{
+		z += speed*frameTime;
+		if (abs(z - org_z) >= abs(max_z))
 		{
-			x += speed;
-			if (abs(x - org_x) >= abs(max_x)) state_x = LEFT_STATE;
-		}
-		if (state_x == LEFT_STATE)
-		{
-			x -= speed;
-			if (abs(x - org_x) >= abs(max_x)) state_x = RIGHT_STATE;
-		}
-		if (state_z == UP_STATE)
-		{
-			z += speed;
-			if (abs(z - org_z) >= abs(max_z))
-			{
-				state_z = DOWN_STATE;
-			}
-		}
-		else if (state_z == DOWN_STATE)
-		{
-			z -= speed;
-			if (abs(z - org_z) >= abs(max_z))
-			{
-				state_z = UP_STATE;
-			}
-		}
-		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			if (sheeps[i]->is_invincible == false && AABB(sheeps[i])) {
-				sheeps[i]->get_hurt();
-			}
+			state_z = DOWN_STATE;
 		}
 	}
+	else if (state_z == DOWN_STATE)
+	{
+		z -= speed*frameTime;
+		if (abs(z - org_z) >= abs(max_z))
+		{
+			state_z = UP_STATE;
+		}
+	}
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (sheeps[i]->is_invincible == false && AABB(sheeps[i])) {
+			sheeps[i]->get_hurt();
+		}
+	}
+}
 
 
 Pumkin::Pumkin(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 50, 50, 50, sp, m_x, m_y, m_z) {
@@ -1321,28 +1322,28 @@ void Pumkin::draw()
 
 		glPopMatrix();
 	}
-void Pumkin::update1(Sheep** sheeps)
+void Pumkin::update1(Sheep** sheeps,float frameTime)
 	{
 		if (state_y == JUMP_UP_STATE)
 		{
-			y += speed;
+			y += speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->y += speed;
+					sheeps[i]->y += speed*frameTime;
 				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
 				state_y = JUMP_DOWN_STATE;
-				y -= (2 * speed);
+				y -= (2 * speed*frameTime);
 			}
 		}
 		else if (state_y == JUMP_DOWN_STATE)
 		{
-			y -= speed;
+			y -= speed*frameTime;
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				if (AABB(sheeps[i])) {
-					sheeps[i]->y -= speed;
+					sheeps[i]->y -= speed*frameTime;
 					if (sheeps[i]->y < 0)
 					{
 						sheeps[i]->y = 0;
@@ -1357,7 +1358,7 @@ void Pumkin::update1(Sheep** sheeps)
 			if (abs(y - org_y) >= abs(max_y))
 			{
 				state_y = JUMP_UP_STATE;
-				y += (2 * speed);
+				y += (2 * speed*frameTime);
 			}
 		}
 	}
@@ -1589,7 +1590,7 @@ void Black_Sheep::draw()
 		glPopMatrix();
 		glPopMatrix();
 	}
-void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
+void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime)
 {
 	// 양과의 좌표거리 계산
 	int sx = sheep->x, sz = sheep->z;
@@ -1611,10 +1612,10 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 			view_rad = atan2(sheep->z - z, sheep->x - x) * 180 / 3.1415926535;
 
 			// 이동
-			if (d > speed)
+			if (d > speed*frameTime)
 			{
-				vx = (sx - x) / d*speed;
-				vz = (sz - z) / d*speed;
+				vx = (sx - x) / d*speed*frameTime;
+				vz = (sz - z) / d*speed*frameTime;
 			}
 			else
 			{
@@ -1642,7 +1643,7 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 					{
 						if (AABB(obstacles[i]))
 						{
-							ouch += DELTA_TIME;
+							ouch += frameTime;
 							x -= vx;
 							z -= vz;
 							break;
@@ -1654,17 +1655,17 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 	}
 	else
 	{
-		wait_time += DELTA_TIME;
+		wait_time += frameTime;
 		if (wait_time > 1000)
 		{
 			ouch = 0;
 			// 바라보는 각도 계산
 			view_rad = atan2(org_z - z, org_x - x) * 180 / 3.1415926535;
 
-			if (org_d > speed)
+			if (org_d > speed*frameTime)
 			{
-				vx = (org_x - x) / org_d*speed;
-				vz = (org_z - z) / org_d*speed;
+				vx = (org_x - x) / org_d*speed*frameTime;
+				vz = (org_z - z) / org_d*speed*frameTime;
 			}
 			else
 			{
@@ -1682,7 +1683,7 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 		}
 
 		// 원점으로 돌아옴
-		if (speed >= abs(org_x - x) && speed >= abs(org_z - z) && d <= tracing_distance && sheep->y == y)
+		if (speed*frameTime >= abs(org_x - x) && speed*frameTime >= abs(org_z - z) && d <= tracing_distance && sheep->y == y)
 		{
 			is_tracing = true;
 			wait_time = 0;
@@ -1690,18 +1691,18 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
 	}
 
 }
-void Black_Sheep::update2(Sheep* sheep, Object* obstacles[])
+void Black_Sheep::update2(Sheep* sheep, Object* obstacles[],float frameTime)
 {
 	if (killed)
 	{
 		if (height > 0)
 		{
 			y--;
-			height -= sheep->speed;
-			//y_scale += 0.01*DELTA_TIME;
+			height -= sheep->speed*frameTime;
+			//y_scale += 0.01*frameTime;
 		}
 	}
-	else { trace_return(sheep, obstacles); }
+	else { trace_return(sheep, obstacles,frameTime); }
 }
 void MotherSheep::draw()
 	{
@@ -1904,93 +1905,116 @@ int Ui::keyboard(unsigned char key, Sheep* sheep)
 		return -1;
 	}
 void Ui::special_key(int key)
+{
+	if (presskey == false)
 	{
-		if (presskey == false)
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
+		presskey = true;
+	}
+	else
+	{
+		if ((*pGameMode == MAIN_MODE || *pGameMode == PAUSE_MODE) && (key_delay[1] == 0))
 		{
-			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
-			presskey = true;
-		}
-		else
-		{
-			if ((*pGameMode == MAIN_MODE || *pGameMode == PAUSE_MODE) && (key_delay[1] == 0))
-			{
-				key_delay[1] = 3;
-				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_MOVE_E], 0, &pSound->Channel[BUTTON_MOVE_E]);
-				if (key == GLUT_KEY_RIGHT) {
-					if (selected_menu == 1)
-					{
-						help = (help + 1) % 3;
-						if (help < 1) help = 1;
-					}
-					else
-					{
-						selected_menu = (selected_menu + 1) % 3;
-					}
+			key_delay[1] = 3;
+			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_MOVE_E], 0, &pSound->Channel[BUTTON_MOVE_E]);
+			if (key == GLUT_KEY_RIGHT) {
+				if (selected_menu == 1)
+				{
+					help = (help + 1) % 3;
+					if (help < 1) help = 1;
 				}
-				else if (key == GLUT_KEY_LEFT) {
-					if (selected_menu == 1)
-					{
-						--help;
-						if (help < 1) help = 2;
-					}
-					else
-					{
-						--selected_menu;
-						if (selected_menu < 0) selected_menu = 2;
-					}
-				}
-				else if (key == GLUT_KEY_UP) {
-					help = 0;
-					--selected_menu;
-					if (selected_menu < 0) selected_menu = 2;
-				}
-				else if (key == GLUT_KEY_DOWN) {
-					help = 0;
+				else
+				{
 					selected_menu = (selected_menu + 1) % 3;
 				}
 			}
-			//추가필요
-			//else if ((key_delay[1] == 0) && (sheep->killed || ending_screen == 3))
-			else if ((key_delay[1] == 0) && ending_screen == 3)
-			{
-				key_delay[1] = 3;
-				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_MOVE_E], 0, &pSound->Channel[BUTTON_MOVE_E]);
-				if (key == GLUT_KEY_RIGHT) {
-					++selected_menu;
-					if (selected_menu > 2) selected_menu = 1;
+			else if (key == GLUT_KEY_LEFT) {
+				if (selected_menu == 1)
+				{
+					--help;
+					if (help < 1) help = 2;
 				}
-				else if (key == GLUT_KEY_LEFT) {
+				else
+				{
 					--selected_menu;
-					if (selected_menu < 1) selected_menu = 2;
+					if (selected_menu < 0) selected_menu = 2;
 				}
-				else if (key == GLUT_KEY_UP) {
-					--selected_menu;
-					if (selected_menu < 1) selected_menu = 2;
-				}
-				else if (key == GLUT_KEY_DOWN) {
-					++selected_menu;
-					if (selected_menu > 2) selected_menu = 1;
-				}
+			}
+			else if (key == GLUT_KEY_UP) {
+				help = 0;
+				--selected_menu;
+				if (selected_menu < 0) selected_menu = 2;
+			}
+			else if (key == GLUT_KEY_DOWN) {
+				help = 0;
+				selected_menu = (selected_menu + 1) % 3;
+			}
+		}
+		//추가필요
+		//else if ((key_delay[1] == 0) && (sheep->killed || ending_screen == 3))
+		else if ((key_delay[1] == 0) && ending_screen == 3)
+		{
+			key_delay[1] = 3;
+			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_MOVE_E], 0, &pSound->Channel[BUTTON_MOVE_E]);
+			if (key == GLUT_KEY_RIGHT) {
+				++selected_menu;
+				if (selected_menu > 2) selected_menu = 1;
+			}
+			else if (key == GLUT_KEY_LEFT) {
+				--selected_menu;
+				if (selected_menu < 1) selected_menu = 2;
+			}
+			else if (key == GLUT_KEY_UP) {
+				--selected_menu;
+				if (selected_menu < 1) selected_menu = 2;
+			}
+			else if (key == GLUT_KEY_DOWN) {
+				++selected_menu;
+				if (selected_menu > 2) selected_menu = 1;
 			}
 		}
 	}
+}
 void Ui::draw(Sheep* sheep)
+{
+	glPushMatrix();
+	glOrtho(-canvas_size, canvas_size, -canvas_size, canvas_size, 1000, -1000);
+
+	// 메인 메뉴
+	if (*pGameMode == MAIN_MODE)
 	{
 		glPushMatrix();
-		glOrtho(-canvas_size, canvas_size, -canvas_size, canvas_size, 1000, -1000);
+		glColor3f(1, 1, 1);
+		int x = -200, y = -200, z = -500;
+		int width = 400, height = 400;
+		glEnable(GL_TEXTURE_2D);
+		if (presskey == false) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_0]); }
+		else if (selected_menu == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_1]); }
+		else if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_2]); }
+		else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_3]); }
+		glBegin(GL_QUADS);
+		glTexCoord2i(0, 0);
+		glVertex3f(x, y, z);
+		glTexCoord2i(1, 0);
+		glVertex3f(x + width, y, z);
+		glTexCoord2i(1, 1);
+		glVertex3f(x + width, y + height, z);
+		glTexCoord2i(0, 1);
+		glVertex3f(x, y + height, z);
+		glEnd();
+		glDisable(GL_TEXTURE_2D);
+		glPopMatrix();
 
-		// 메인 메뉴
-		if (*pGameMode == MAIN_MODE)
+		//도움말
+		if (help > 0)
 		{
 			glPushMatrix();
 			glColor3f(1, 1, 1);
-			int x = -200, y = -200, z = -500;
-			int width = 400, height = 400;
+			int x = -180, y = -180, z = -550;
+			int width = 270, height = 270;
 			glEnable(GL_TEXTURE_2D);
-			if (presskey == false) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_0]); }
-			else if (selected_menu == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_1]); }
-			else if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_2]); }
-			else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[MAIN_3]); }
+			if (help == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[HELP_0]); }
+			else if (help == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[HELP_1]); }
 			glBegin(GL_QUADS);
 			glTexCoord2i(0, 0);
 			glVertex3f(x, y, z);
@@ -2003,194 +2027,171 @@ void Ui::draw(Sheep* sheep)
 			glEnd();
 			glDisable(GL_TEXTURE_2D);
 			glPopMatrix();
-
-			//도움말
-			if (help > 0)
-			{
-				glPushMatrix();
-				glColor3f(1, 1, 1);
-				int x = -180, y = -180, z = -550;
-				int width = 270, height = 270;
-				glEnable(GL_TEXTURE_2D);
-				if (help == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[HELP_0]); }
-				else if (help == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[HELP_1]); }
-				glBegin(GL_QUADS);
-				glTexCoord2i(0, 0);
-				glVertex3f(x, y, z);
-				glTexCoord2i(1, 0);
-				glVertex3f(x + width, y, z);
-				glTexCoord2i(1, 1);
-				glVertex3f(x + width, y + height, z);
-				glTexCoord2i(0, 1);
-				glVertex3f(x, y + height, z);
-				glEnd();
-				glDisable(GL_TEXTURE_2D);
-				glPopMatrix();
-			}
 		}
-		else
-		{
-			if (*pGameMode == ENDING_MODE)
-			{
-				// 엔딩 클리어화면
-				static int x = 0, y = 0, z = -500;
-				static int width = 0, height = 0;
-				static int time;
-				if (sheep->ending_finished == false)
-				{
-					x = 0, y = 0, z = -500;
-					width = 0, height = 0;
-					time = 0;
-				}
-				else
-				{
-					glPushMatrix();
-					glColor3f(1, 1, 1);
-					if (x > -150)
-					{
-						x -= DELTA_TIME*0.1;
-						y -= DELTA_TIME*0.1;
-						width += 0.2 * DELTA_TIME;
-						height += 0.2 * DELTA_TIME;
-					}
-					else if (ending_screen != 3)
-					{
-						time += DELTA_TIME;
-						if (time % 200 == 0)
-						{
-							ending_screen = (ending_screen + 1) % 2;
-						}
-						if (time >= 2000)
-						{
-							ending_screen = 3;
-						}
-					}
-					glEnable(GL_TEXTURE_2D);
-					if (ending_screen == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_0]); }
-					else if (ending_screen == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_1]); }
-					else if (ending_screen == 3)
-					{
-						if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_MENU_0]); }
-						else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_MENU_1]); }
-					}
-					glBegin(GL_QUADS);
-					glTexCoord2i(0, 0);
-					glVertex3f(x, y, z);
-					glTexCoord2i(1, 0);
-					glVertex3f(x + width, y, z);
-					glTexCoord2i(1, 1);
-					glVertex3f(x + width, y + height, z);
-					glTexCoord2i(0, 1);
-					glVertex3f(x, y + height, z);
-					glEnd();
-					glDisable(GL_TEXTURE_2D);
-					glPopMatrix();
-				}
-			}
-
-			if (*pGameMode == PLAY_MODE)
-			{
-				// 목숨
-				glPushMatrix();
-				glColor3f(0.9, 0.2, 0.2); //하트 색
-				glTranslated(-170, 170, -500); //화면상의 하트 위치
-				for (int i = 0; i < sheep->life; ++i)
-				{
-					glPushMatrix();
-					glTranslated(i * 43, 0, 0); //하트사이 x간격 
-					glRotated(90, 1, 0, 0);
-					glScaled(heart_size, heart_size, heart_size); // 하트크기
-																  //왼쪽부분
-					glPushMatrix();
-					glTranslated(-9, 0, 0);
-					glRotated(-45, 0, 1, 0);
-					glutSolidTorus(18, 10, 20, 20);
-					glPopMatrix();
-					//오른쪽부분
-					glPushMatrix();
-					glTranslated(9, 0, 0);
-					glRotated(45, 0, 1, 0);
-					glutSolidTorus(18, 10, 20, 20);
-					glPopMatrix();
-					glPopMatrix();
-				}
-				glPopMatrix();
-
-				//ESC
-				glPushMatrix();
-				glColor3f(1, 1, 1);
-				int x = 140, y = 140, z = -500;
-				int width = 50, height = 50;
-				glEnable(GL_TEXTURE_2D);
-				glBindTexture(GL_TEXTURE_2D, pTextures[ESC_BUTTON]);
-				glBegin(GL_QUADS);
-				glTexCoord2i(0, 0);
-				glVertex3f(x, y, z);
-				glTexCoord2i(1, 0);
-				glVertex3f(x + width, y, z);
-				glTexCoord2i(1, 1);
-				glVertex3f(x + width, y + height, z);
-				glTexCoord2i(0, 1);
-				glVertex3f(x, y + height, z);
-				glEnd();
-				glDisable(GL_TEXTURE_2D);
-				glPopMatrix();
-			}
-
-			// 메뉴 - PAUSE_MODE
-			/*if (*pGameMode == PAUSE_MODE)
-			{
-				glPushMatrix();
-				glColor3f(1, 1, 1);
-				int x = -70, y = -130, z = -500;
-				int width = 155, height = 250;
-				glEnable(GL_TEXTURE_2D);
-				if (selected_menu == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_0]); }
-				else if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_1]); }
-				else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_2]); }
-				glBegin(GL_QUADS);
-				glTexCoord2i(0, 0);
-				glVertex3f(x, y, z);
-				glTexCoord2i(1, 0);
-				glVertex3f(x + width, y, z);
-				glTexCoord2i(1, 1);
-				glVertex3f(x + width, y + height, z);
-				glTexCoord2i(0, 1);
-				glVertex3f(x, y + height, z);
-				glEnd();
-				glDisable(GL_TEXTURE_2D);
-				glPopMatrix();
-			}
-			사망메뉴
-			else if (sheep->killed)
-			{
-				glPushMatrix();
-				glColor3f(1, 1, 1);
-				int x = -70, y = -130, z = -500;
-				int width = 155, height = 250;
-				glEnable(GL_TEXTURE_2D);
-				if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_0]); }
-				else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_1]); }
-				glBegin(GL_QUADS);
-				glTexCoord2i(0, 0);
-				glVertex3f(x, y, z);
-				glTexCoord2i(1, 0);
-				glVertex3f(x + width, y, z);
-				glTexCoord2i(1, 1);
-				glVertex3f(x + width, y + height, z);
-				glTexCoord2i(0, 1);
-				glVertex3f(x, y + height, z);
-				glEnd();
-				glDisable(GL_TEXTURE_2D);
-				glPopMatrix();
-			}*/
-
-
-		}
-
-		glPopMatrix();
 	}
-void Ui::update()
+	else
+	{
+		if (*pGameMode == ENDING_MODE)
+		{
+			// 엔딩 클리어화면
+			static int x = 0, y = 0, z = -500;
+			static int width = 0, height = 0;
+			static int time;
+			if (sheep->ending_finished == false)
+			{
+				x = 0, y = 0, z = -500;
+				width = 0, height = 0;
+				time = 0;
+			}
+			else
+			{
+				glPushMatrix();
+				glColor3f(1, 1, 1);
+				if (x > -150)
+				{
+					x -= FIXED_FRAME_TIME*0.1;
+					y -= FIXED_FRAME_TIME*0.1;
+					width += 0.2 * FIXED_FRAME_TIME;
+					height += 0.2 * FIXED_FRAME_TIME;
+				}
+				else if (ending_screen != 3)
+				{
+					time += FIXED_FRAME_TIME;
+					if (time % 200 == 0)
+					{
+						ending_screen = (ending_screen + 1) % 2;
+					}
+					if (time >= 2000)
+					{
+						ending_screen = 3;
+					}
+				}
+				glEnable(GL_TEXTURE_2D);
+				if (ending_screen == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_0]); }
+				else if (ending_screen == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_1]); }
+				else if (ending_screen == 3)
+				{
+					if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_MENU_0]); }
+					else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[ENDING_MENU_1]); }
+				}
+				glBegin(GL_QUADS);
+				glTexCoord2i(0, 0);
+				glVertex3f(x, y, z);
+				glTexCoord2i(1, 0);
+				glVertex3f(x + width, y, z);
+				glTexCoord2i(1, 1);
+				glVertex3f(x + width, y + height, z);
+				glTexCoord2i(0, 1);
+				glVertex3f(x, y + height, z);
+				glEnd();
+				glDisable(GL_TEXTURE_2D);
+				glPopMatrix();
+			}
+		}
+
+		if (*pGameMode == PLAY_MODE)
+		{
+			// 목숨
+			glPushMatrix();
+			glColor3f(0.9, 0.2, 0.2); //하트 색
+			glTranslated(-170, 170, -500); //화면상의 하트 위치
+			for (int i = 0; i < sheep->life; ++i)
+			{
+				glPushMatrix();
+				glTranslated(i * 43, 0, 0); //하트사이 x간격 
+				glRotated(90, 1, 0, 0);
+				glScaled(heart_size, heart_size, heart_size); // 하트크기
+															  //왼쪽부분
+				glPushMatrix();
+				glTranslated(-9, 0, 0);
+				glRotated(-45, 0, 1, 0);
+				glutSolidTorus(18, 10, 20, 20);
+				glPopMatrix();
+				//오른쪽부분
+				glPushMatrix();
+				glTranslated(9, 0, 0);
+				glRotated(45, 0, 1, 0);
+				glutSolidTorus(18, 10, 20, 20);
+				glPopMatrix();
+				glPopMatrix();
+			}
+			glPopMatrix();
+
+			//ESC
+			glPushMatrix();
+			glColor3f(1, 1, 1);
+			int x = 140, y = 140, z = -500;
+			int width = 50, height = 50;
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, pTextures[ESC_BUTTON]);
+			glBegin(GL_QUADS);
+			glTexCoord2i(0, 0);
+			glVertex3f(x, y, z);
+			glTexCoord2i(1, 0);
+			glVertex3f(x + width, y, z);
+			glTexCoord2i(1, 1);
+			glVertex3f(x + width, y + height, z);
+			glTexCoord2i(0, 1);
+			glVertex3f(x, y + height, z);
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+			glPopMatrix();
+		}
+
+		// 메뉴 - PAUSE_MODE
+		/*if (*pGameMode == PAUSE_MODE)
+		{
+			glPushMatrix();
+			glColor3f(1, 1, 1);
+			int x = -70, y = -130, z = -500;
+			int width = 155, height = 250;
+			glEnable(GL_TEXTURE_2D);
+			if (selected_menu == 0) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_0]); }
+			else if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_1]); }
+			else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[MENU_2]); }
+			glBegin(GL_QUADS);
+			glTexCoord2i(0, 0);
+			glVertex3f(x, y, z);
+			glTexCoord2i(1, 0);
+			glVertex3f(x + width, y, z);
+			glTexCoord2i(1, 1);
+			glVertex3f(x + width, y + height, z);
+			glTexCoord2i(0, 1);
+			glVertex3f(x, y + height, z);
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+			glPopMatrix();
+		}
+		사망메뉴
+		else if (sheep->killed)
+		{
+			glPushMatrix();
+			glColor3f(1, 1, 1);
+			int x = -70, y = -130, z = -500;
+			int width = 155, height = 250;
+			glEnable(GL_TEXTURE_2D);
+			if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_0]); }
+			else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_1]); }
+			glBegin(GL_QUADS);
+			glTexCoord2i(0, 0);
+			glVertex3f(x, y, z);
+			glTexCoord2i(1, 0);
+			glVertex3f(x + width, y, z);
+			glTexCoord2i(1, 1);
+			glVertex3f(x + width, y + height, z);
+			glTexCoord2i(0, 1);
+			glVertex3f(x, y + height, z);
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+			glPopMatrix();
+		}*/
+
+
+	}
+
+	glPopMatrix();
+}
+void Ui::update(float frameTime)
 {
 	if ((*pGameMode == GAME_OVER || *pGameMode == ENDING_MODE) && selected_menu == 0)
 	{
@@ -2202,7 +2203,7 @@ void Ui::update()
 		if (k) { --k; }
 	}
 
-	heart_size += heart_dir*0.00025 * DELTA_TIME;
+	heart_size += heart_dir*0.00025 * frameTime;
 
 	if (heart_size > 0.6) { heart_dir = -1; } // 하트 최대 크기
 	else if (heart_size < 0.5) { heart_dir = +1; } // 하트 최소 크기

@@ -19,7 +19,7 @@ struct Camera {
 	~Camera();
 	void Camera::setting();
 	void keyboard(unsigned char key);
-	void update();
+	void update(float frameTime);
 };
 
 struct Ground {
@@ -48,8 +48,8 @@ struct Object {
 	Object(int type, float x, float y, float z, float w, float h, float d, float sp, float m_x, float m_y, float m_z);
 	virtual ~Object() {  }
 	virtual void draw() = 0;
-	virtual void update1(Sheep**) {};
-	virtual void update2(Sheep*, Object*[]) { };
+	virtual void update1(Sheep**, float frameTime) {};
+	virtual void update2(Sheep*, Object*[], float frameTime) { };
 	virtual bool is_standing(const Object*) { return false; };
 	virtual bool is_inside(Sheep*) { return false; };
 	virtual bool AABB_surface(const Object*) { return false; };
@@ -79,10 +79,10 @@ struct Sheep : public Object {
 	Sheep(int t, int x, int y, int z, float sp);
 	~Sheep();
 	void get_hurt();
-	void dead_update();
-	void ending_update();
+	void dead_update(float frameTime);
+	void ending_update(float frameTime);
 	virtual void draw() override final;
-	virtual void update2(const Ground* ground, Object* obstacles[]);
+	virtual void update2(const Ground* ground, Object* obstacles[], float frameTime);
 	void special_key(int key, Object* obstacles[]);
 	void special_key_up(int key);
 	void setSound(SoundPackage* pSound);
@@ -94,7 +94,7 @@ struct Box : public Object {
 	~Box();
 	virtual void draw() override final;
 	virtual bool is_standing(const Object* other);
-	virtual void update1(Sheep** sheep);
+	virtual void update1(Sheep** sheep, float frameTime);
 };
 struct Scissors : public Object {
 	float org_x, org_y, org_z;
@@ -103,14 +103,14 @@ struct Scissors : public Object {
 	Scissors(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Scissors();
 	virtual void draw() override final;
-	virtual void update1(Sheep** sheep);
+	virtual void update1(Sheep** sheep, float frameTime);
 };
 struct Pumkin : public Object {
 	float org_y;
 	Pumkin(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Pumkin();
 	virtual void draw() override final;
-	virtual void update1(Sheep** sheep);
+	virtual void update1(Sheep** sheep, float frameTime);
 	virtual bool is_standing(const Object* other);
 };
 struct Hay : public Object
@@ -133,8 +133,8 @@ struct Black_Sheep : public Object {
 	~Black_Sheep();
 	virtual void draw() override final;
 
-	void trace_return(Sheep* sheep, Object* obstacles[]);
-	virtual void update2(Sheep* sheep, Object* obstacles[]);
+	void trace_return(Sheep* sheep, Object* obstacles[],float frameTime);
+	virtual void update2(Sheep* sheep, Object* obstacles[], float frameTime);
 };
 struct MotherSheep {
 	int x = ENDING_X + 250, y = 50, z = 100;
@@ -158,5 +158,5 @@ struct Ui {
 	int keyboard(unsigned char key, Sheep* sheep);
 	void special_key(int key);
 	void draw(Sheep* sheep);
-	void update();
+	void update(float frameTime);
 };

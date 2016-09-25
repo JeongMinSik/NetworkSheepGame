@@ -360,89 +360,74 @@ void main()
 }
 
 float currentTime = clock();
-float accumulator = 0.0;
 GLvoid updateScene(int value)
 {
 	FMOD_System_Update(g_System);
 
 	float newTime = clock();
 	float frameTime = newTime - currentTime;
-
-	//while (frameTime < FIXED_FRAME_TIME) {
-	//	frameTime = clock() - currentTime;
-	//}
-
-	if (frameTime > MAX_FRAME_TIME) {
-		frameTime = MAX_FRAME_TIME;
-	}
-
 	currentTime = newTime;
 	//printf("FPS:%f \n", 1000.0 / frameTime);
-	accumulator += frameTime;
-	while (accumulator >= DELTA_TIME) {
 
-		ui->update();
+	ui->update(frameTime);
 
-		switch (Game_Mode)
-		{
-		case PLAY_MODE:
-			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
-			// 각각의 양에 대한 카메라, 스탠딩 업데이트
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				//카메라 업데이트
-				auto sheep = NetworkManager.m_Players[i].m_pSheep;
-				sheeps[i] = sheep;
+	switch (Game_Mode)
+	{
+	case PLAY_MODE:
+		Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
+		// 각각의 양에 대한 카메라, 스탠딩 업데이트
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			//카메라 업데이트
+			auto sheep = NetworkManager.m_Players[i].m_pSheep;
+			sheeps[i] = sheep;
 
-				if (!sheep->killed) {
-					sheep->pCamera->update();
-				}
-
-				//if(!mainSheep->killed)
-				//	mainCamera->update();
-
-				//객체 업데이트 (+스탠딩 상태 확인)
-				sheep->stading_index = -1;
-				for (int i = 0; i < ob_num; ++i) {
-
-					if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
-						sheep->stading_index = i;
-					}
-
-					if (obstacles[i]->type == BLACK_SHEEP) {
-						
-						obstacles[i]->update2(sheep, obstacles);
-					}
-				}
+			if (!sheep->killed) {
+				sheep->pCamera->update(frameTime);
 			}
 
-			// 장애물 업데이트
+			//if(!mainSheep->killed)
+			//	mainCamera->update();
+
+			//객체 업데이트 (+스탠딩 상태 확인)
+			sheep->stading_index = -1;
 			for (int i = 0; i < ob_num; ++i) {
-				obstacles[i]->update1(sheeps);
-			};
 
-			//양 업데이트
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				switch (sheeps[i]->iGameMode) {
-				case PLAY_MODE:
-					sheeps[i]->update2(ground[0], obstacles);
-					break;
-				case GAME_OVER:
-					sheeps[i]->dead_update();
-					break;
-				case ENDING_MODE:
-					sheeps[i]->ending_update();
-					break;
+				if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+					sheep->stading_index = i;
+				}
+
+				if (obstacles[i]->type == BLACK_SHEEP) {
+
+					obstacles[i]->update2(sheep, obstacles, frameTime);
 				}
 			}
-
-			delete[] sheeps;
-			break;
 		}
 
-		accumulator -= DELTA_TIME;
+		// 장애물 업데이트
+		for (int i = 0; i < ob_num; ++i) {
+			obstacles[i]->update1(sheeps, frameTime);
+		};
+
+		//양 업데이트
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			switch (sheeps[i]->iGameMode) {
+			case PLAY_MODE:
+				sheeps[i]->update2(ground[0], obstacles, frameTime);
+				break;
+			case GAME_OVER:
+				sheeps[i]->dead_update(frameTime);
+				break;
+			case ENDING_MODE:
+				sheeps[i]->ending_update(frameTime);
+				break;
+			}
+		}
+
+		delete[] sheeps;
+		break;
 	}
 	glutPostRedisplay();
-	glutTimerFunc(1, updateScene, 1);
+	glutTimerFunc(FIXED_FRAME_TIME, updateScene, 1);
 
 }
 

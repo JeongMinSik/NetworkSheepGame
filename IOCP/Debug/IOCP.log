@@ -1,4 +1,4 @@
-﻿빌드 시작: 2016-09-25 오후 12:18:13
+﻿빌드 시작: 2016-09-26 오전 12:49:20
      1>2 노드의 "D:\3_2\넷겜플\텀프로젝트\IOCP\IOCP.vcxproj" 프로젝트(Build 대상)입니다.
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp main.cpp
@@ -20,4 +20,4 @@
 
 빌드했습니다.
 
-경과 시간: 00:00:02.61
+경과 시간: 00:00:02.17
