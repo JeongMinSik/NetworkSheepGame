@@ -48,7 +48,7 @@ struct Object {
 	Object(int type, float x, float y, float z, float w, float h, float d, float sp, float m_x, float m_y, float m_z);
 	virtual ~Object() {  }
 	virtual void draw() = 0;
-	virtual void update1(Sheep*) {};
+	virtual void update1(Sheep**) {};
 	virtual void update2(Sheep*, Object*[]) { };
 	virtual bool is_standing(const Object*) { return false; };
 	virtual bool is_inside(Sheep*) { return false; };
@@ -73,7 +73,7 @@ struct Sheep : public Object {
 	int stading_index; // ¹Ù´Ú°´Ã¼ ÀÎµ¦½º
 	bool ending_finished = false;
 	SoundPackage *pSound;
-	int *pGameMode;
+	int iGameMode;
 	int obCnt; // Àå¾Ö¹° ¼ö
 
 	Sheep(int t, int x, int y, int z, float sp);
@@ -94,7 +94,7 @@ struct Box : public Object {
 	~Box();
 	virtual void draw() override final;
 	virtual bool is_standing(const Object* other);
-	virtual void update1(Sheep* sheep);
+	virtual void update1(Sheep** sheep);
 };
 struct Scissors : public Object {
 	float org_x, org_y, org_z;
@@ -103,14 +103,14 @@ struct Scissors : public Object {
 	Scissors(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Scissors();
 	virtual void draw() override final;
-	virtual void update1(Sheep* sheep);
+	virtual void update1(Sheep** sheep);
 };
 struct Pumkin : public Object {
 	float org_y;
 	Pumkin(int t, float x, float y, float z, float sp, float m_x, float m_y, float m_z);
 	~Pumkin();
 	virtual void draw() override final;
-	virtual void update1(Sheep* sheep);
+	virtual void update1(Sheep** sheep);
 	virtual bool is_standing(const Object* other);
 };
 struct Hay : public Object

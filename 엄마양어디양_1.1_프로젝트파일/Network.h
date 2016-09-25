@@ -33,7 +33,7 @@ public:
 	void initGameMode(int *piGameMode) {
 		m_piGameMode = piGameMode;
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			m_Players[i].m_pSheep->pGameMode = piGameMode;
+			m_Players[i].m_pSheep->iGameMode = *piGameMode;
 		}
 		
 	}

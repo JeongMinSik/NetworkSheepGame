@@ -29,6 +29,7 @@ FMOD_CHANNEL *g_Channel[SOUND_COUNT];
 CNetwork NetworkManager;
 Ui* ui;
 Camera *mainCamera;
+int iCurCamera;
 Sheep *mainSheep;
 Ground* ground[GROUND_NUM];
 Object* obstacles[500];
@@ -225,6 +226,7 @@ void CreateWorld()
 {
 	mainSheep = NetworkManager.m_Players[0].m_pSheep;
 	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
+	iCurCamera = 0;
 	// 기본 객체
 
 	ground[0] = new Ground(-200, -100, -100); // z축 -100~300
@@ -366,9 +368,9 @@ GLvoid updateScene(int value)
 	float newTime = clock();
 	float frameTime = newTime - currentTime;
 
-	while (frameTime < FIXED_FRAME_TIME) {
-		frameTime = clock() - currentTime;
-	}
+	//while (frameTime < FIXED_FRAME_TIME) {
+	//	frameTime = clock() - currentTime;
+	//}
 
 	if (frameTime > MAX_FRAME_TIME) {
 		frameTime = MAX_FRAME_TIME;
@@ -384,11 +386,13 @@ GLvoid updateScene(int value)
 		switch (Game_Mode)
 		{
 		case PLAY_MODE:
-
-			for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
-
+			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
+			// 각각의 양에 대한 카메라, 스탠딩 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				//카메라 업데이트
 				auto sheep = NetworkManager.m_Players[i].m_pSheep;
+				sheeps[i] = sheep;
+
 				if (!sheep->killed) {
 					sheep->pCamera->update();
 				}
@@ -405,21 +409,33 @@ GLvoid updateScene(int value)
 					}
 
 					if (obstacles[i]->type == BLACK_SHEEP) {
+						
 						obstacles[i]->update2(sheep, obstacles);
 					}
-					else {
-						obstacles[i]->update1(sheep);
-					}
 				}
-				//양 업데이트
-				sheep->update2(ground[0], obstacles);
 			}
-			break;
-		case GAME_OVER:
-			mainSheep->dead_update();
-			break;
-		case ENDING_MODE:
-			mainSheep->ending_update();
+
+			// 장애물 업데이트
+			for (int i = 0; i < ob_num; ++i) {
+				obstacles[i]->update1(sheeps);
+			};
+
+			//양 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				switch (sheeps[i]->iGameMode) {
+				case PLAY_MODE:
+					sheeps[i]->update2(ground[0], obstacles);
+					break;
+				case GAME_OVER:
+					sheeps[i]->dead_update();
+					break;
+				case ENDING_MODE:
+					sheeps[i]->ending_update();
+					break;
+				}
+			}
+
+			delete[] sheeps;
 			break;
 		}
 
@@ -453,7 +469,7 @@ GLvoid drawScene(GLvoid)
 		}
 		//양
 		//mainSheep->draw();
-		for (int i = 0; i < NetworkManager.m_nPlayerCount; ++i) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			NetworkManager.m_Players[i].m_pSheep->draw();
 		}
 		//바운딩박스(양)
@@ -477,8 +493,16 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	if (Game_Mode == PLAY_MODE)
 	{
-		mainCamera->keyboard(key);
-		NetworkManager.keyDown(key);
+		if (mainSheep->iGameMode == PLAY_MODE) {
+			mainCamera->keyboard(key);
+			NetworkManager.keyDown(key);
+		}
+		else if (mainSheep->killed) {
+			if (key == ' ') {
+				iCurCamera = (iCurCamera + 1) % MAX_PLAYER_CNT;
+				mainCamera = NetworkManager.m_Players[iCurCamera].m_pSheep->pCamera;
+			}
+		}
 	}
 	int retval = ui->keyboard(key, mainSheep);
 
@@ -493,7 +517,7 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 GLvoid SpecialKeyboard(int key, int x, int y)
 {
 	ui->special_key(key);
-	if (Game_Mode == PLAY_MODE) {
+	if (mainSheep->iGameMode == PLAY_MODE) {
 		mainSheep->special_key(key, obstacles);
 		NetworkManager.keyDown(key);
 	}
@@ -501,7 +525,7 @@ GLvoid SpecialKeyboard(int key, int x, int y)
 
 GLvoid SpecialKeyboardUp(int key, int x, int y)
 {
-	if (Game_Mode == PLAY_MODE) {
+	if (mainSheep->iGameMode == PLAY_MODE) {
 		mainSheep->special_key_up(key);
 		NetworkManager.keyUp(key);
 	}

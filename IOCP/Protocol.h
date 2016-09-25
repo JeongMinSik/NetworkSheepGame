@@ -7,7 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
-#define		MAX_PLAYER_CNT			3
+#define		MAX_PLAYER_CNT			2
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1

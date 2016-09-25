@@ -205,9 +205,9 @@ void CNetwork::packetUnpacker()
 			if (start.ID_LIST[i] != m_Players[0].m_nID) {
 				m_Players[j++].m_nID = start.ID_LIST[i];
 			}
+			m_Players[i].m_pSheep->iGameMode = PLAY_MODE;
 		}
 
-		
 		break;
 	}
 	case PAK_KEY_DOWN:

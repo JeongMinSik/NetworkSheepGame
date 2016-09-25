@@ -24,34 +24,35 @@ void Camera::keyboard(unsigned char key)
 			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CAMERA_E], 0, &pSound->Channel[CAMERA_E]);
 			is_changing = true;
 		}
+
 	}
 void Camera::update()
+{
+	// 카메라 회전
+	if (is_changing)
 	{
-		// 카메라 회전
-		if (is_changing)
+		if (view_point == FRONT_VIEW)
 		{
-			if (view_point == FRONT_VIEW)
+			view_radius -= 0.2f * DELTA_TIME;
+			if (view_radius <= -90)
 			{
-				view_radius -= 0.2f * DELTA_TIME;
-				if (view_radius <= -90)
-				{
-					is_changing = false;
-					view_radius = -90;
-					view_point = DOWN_VIEW;
-				}
+				is_changing = false;
+				view_radius = -90;
+				view_point = DOWN_VIEW;
 			}
-			else if (view_point == DOWN_VIEW)
+		}
+		else if (view_point == DOWN_VIEW)
+		{
+			view_radius += 0.2f * DELTA_TIME;
+			if (view_radius >= 0)
 			{
-				view_radius += 0.2f * DELTA_TIME;
-				if (view_radius >= 0)
-				{
-					is_changing = false;
-					view_radius = 0;
-					view_point = FRONT_VIEW;
-				}
+				is_changing = false;
+				view_radius = 0;
+				view_point = FRONT_VIEW;
 			}
 		}
 	}
+}
 
 
 Ground::Ground(float x, float y, float z) :x(x), y(y), z(z), width(1000), height(100), depth(400) {
@@ -196,37 +197,37 @@ Sheep::~Sheep() {
 	delete pCamera;
 }
 void Sheep::get_hurt()
+{
+	is_invincible = true;
+	--life;
+	if (life < 1)
 	{
-		is_invincible = true;
-		--life;
-		if (life < 1)
-		{
-			*pGameMode = GAME_OVER;
-			FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
-			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CRY_E], 0, &pSound->Channel[CRY_E]);
-		}
-		else
-		{
-			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GET_HURT_E], 0, &pSound->Channel[GET_HURT_E]);
-		}
+		iGameMode = GAME_OVER;
+		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CRY_E], 0, &pSound->Channel[CRY_E]);
 	}
+	else
+	{
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GET_HURT_E], 0, &pSound->Channel[GET_HURT_E]);
+	}
+}
 void Sheep::dead_update()
+{
+	pCamera->is_changing = false;
+
+	//죽은 양
+	if (pCamera->view_radius != -40)
+		(pCamera->view_radius < -40) ? pCamera->view_radius += 0.25*DELTA_TIME : pCamera->view_radius -= 0.25*DELTA_TIME;
+	else if (y <= 500)
 	{
-		pCamera->is_changing = false;
+		y += 0.5f*DELTA_TIME;
 
-		//죽은 양
-		if (pCamera->view_radius != -40)
-			(pCamera->view_radius < -40) ? pCamera->view_radius += 0.25*DELTA_TIME : pCamera->view_radius -= 0.25*DELTA_TIME;
-		else if (y <= 500)
+		if (y > 500)
 		{
-			y += 0.5f*DELTA_TIME;
-
-			if (y > 500)
-			{
-				killed = true;
-			}
+			killed = true;
 		}
 	}
+}
 void Sheep::ending_update()
 	{
 
@@ -452,7 +453,7 @@ void Sheep::draw()
 		glPopMatrix();
 
 		//천사링
-		if (*pGameMode == GAME_OVER)
+		if (iGameMode == GAME_OVER)
 		{
 			glPushMatrix();
 			glColor3f(0.97, 0.97, 0.97);
@@ -467,9 +468,9 @@ void Sheep::draw()
 void Sheep::update2(const Ground* ground, Object* obstacles[])
 {
 	//엔딩
-	if (*pGameMode != ENDING_MODE && x > ENDING_X)
+	if (iGameMode != ENDING_MODE && x > ENDING_X)
 	{
-		*pGameMode = ENDING_MODE;
+		iGameMode = ENDING_MODE;
 		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
 		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CLEAR_BGM], 0, &pSound->Channel[CLEAR_BGM]);
 	}
@@ -895,7 +896,7 @@ void Sheep::special_key(int key, Object* obstacles[])
 		{
 			state[UP_STATE] = true;
 		}
-		else if (pCamera->view_point == FRONT_VIEW && state[JUMP_DOWN_STATE] == false && state[JUMP_UP_STATE] == false && state[GRAVITY] == false && *pGameMode == PLAY_MODE)
+		else if (pCamera->view_point == FRONT_VIEW && state[JUMP_DOWN_STATE] == false && state[JUMP_UP_STATE] == false && state[GRAVITY] == false)
 		{
 			state[JUMP_UP_STATE] = true;
 			org_y = y;
@@ -924,7 +925,6 @@ void Sheep::special_key_up(int key)
 			state[DOWN_STATE] = false;
 		}
 	}
-
 void Sheep::setSound(SoundPackage *sound)
 {
 	pSound = sound;
@@ -1033,16 +1033,18 @@ bool Box::is_standing(const Object* other)
 		if (z >= other->z + other->depth) return false;
 		return true;
 	}
-void Box::update1(Sheep* sheep)
+void Box::update1(Sheep** sheeps)
 	{
 		if (state_x == RIGHT_STATE)
 		{
 			x += speed;
-			if (AABB(sheep))
-			{
-				sheep->x += speed;
-				pCamera->x += speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])){
+					sheeps[i]->x += speed;
+					pCamera->x += speed;
+				}
 			}
+
 			if (abs(x - org_x) >= abs(max_x)) {
 				state_x = LEFT_STATE;
 				x -= 2 * speed;
@@ -1051,10 +1053,11 @@ void Box::update1(Sheep* sheep)
 		if (state_x == LEFT_STATE)
 		{
 			x -= speed;
-			if (AABB(sheep))
-			{
-				sheep->x -= speed;
-				pCamera->x -= speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->x -= speed;
+					pCamera->x -= speed;
+				}
 			}
 			if (abs(x - org_x) >= abs(max_x)) {
 				state_x = RIGHT_STATE;
@@ -1064,9 +1067,10 @@ void Box::update1(Sheep* sheep)
 		if (state_z == UP_STATE)
 		{
 			z += speed;
-			if (AABB(sheep))
-			{
-				sheep->z += speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->z += speed;
+				}
 			}
 			if (abs(z - org_z) >= abs(max_z))
 			{
@@ -1077,9 +1081,10 @@ void Box::update1(Sheep* sheep)
 		else if (state_z == DOWN_STATE)
 		{
 			z -= speed;
-			if (AABB(sheep))
-			{
-				sheep->z -= speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->z -= speed;
+				}
 			}
 			if (abs(z - org_z) >= abs(max_z))
 			{
@@ -1090,9 +1095,10 @@ void Box::update1(Sheep* sheep)
 		if (state_y == JUMP_UP_STATE)
 		{
 			y += speed;
-			if (AABB(sheep))
-			{
-				sheep->y += speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->y += speed;
+				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
@@ -1103,9 +1109,10 @@ void Box::update1(Sheep* sheep)
 		else if (state_y == JUMP_DOWN_STATE)
 		{
 			y -= speed;
-			if (AABB(sheep))
-			{
-				sheep->y -= speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->y -= speed;
+				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
@@ -1223,7 +1230,7 @@ void Scissors::draw()
 
 		glPopMatrix();
 	}
-void Scissors::update1(Sheep* sheep)
+void Scissors::update1(Sheep** sheeps)
 	{
 		Rotate_y += scissor_rot;
 		if (Rotate_y >= 15)
@@ -1257,9 +1264,10 @@ void Scissors::update1(Sheep* sheep)
 				state_z = UP_STATE;
 			}
 		}
-		if (sheep->is_invincible == false && AABB(sheep))
-		{
-			sheep->get_hurt();
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (sheeps[i]->is_invincible == false && AABB(sheeps[i])) {
+				sheeps[i]->get_hurt();
+			}
 		}
 	}
 
@@ -1313,14 +1321,15 @@ void Pumkin::draw()
 
 		glPopMatrix();
 	}
-void Pumkin::update1(Sheep* sheep)
+void Pumkin::update1(Sheep** sheeps)
 	{
 		if (state_y == JUMP_UP_STATE)
 		{
 			y += speed;
-			if (AABB(sheep))
-			{
-				sheep->y += speed;
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->y += speed;
+				}
 			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
@@ -1331,16 +1340,17 @@ void Pumkin::update1(Sheep* sheep)
 		else if (state_y == JUMP_DOWN_STATE)
 		{
 			y -= speed;
-			if (AABB(sheep))
-			{
-				sheep->y -= speed;
-				if (sheep->y < 0)
-				{
-					sheep->y = 0;
-					if (sheep->is_invincible == false)
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i])) {
+					sheeps[i]->y -= speed;
+					if (sheeps[i]->y < 0)
 					{
-						sheep->is_under = true;
-						sheep->get_hurt();
+						sheeps[i]->y = 0;
+						if (sheeps[i]->is_invincible == false)
+						{
+							sheeps[i]->is_under = true;
+							sheeps[i]->get_hurt();
+						}
 					}
 				}
 			}
@@ -1580,119 +1590,119 @@ void Black_Sheep::draw()
 		glPopMatrix();
 	}
 void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[])
-	{
-		// 양과의 좌표거리 계산
-		int sx = sheep->x, sz = sheep->z;
-		float d = sqrt(float(sx - x)*float(sx - x) + float(sz - z)*float(sz - z));
-		// 원위치와의 계산
-		float org_d = sqrt(float(org_x - x)*float(org_x - x) + float(org_z - z)*float(org_z - z));
-		int vx, vz; // 이동량
+{
+	// 양과의 좌표거리 계산
+	int sx = sheep->x, sz = sheep->z;
+	float d = sqrt(float(sx - x)*float(sx - x) + float(sz - z)*float(sz - z));
+	// 원위치와의 계산
+	float org_d = sqrt(float(org_x - x)*float(org_x - x) + float(org_z - z)*float(org_z - z));
+	int vx, vz; // 이동량
 
-		if (is_tracing)
+	if (is_tracing)
+	{
+		// 추격 종료
+		if (org_d > tracing_distance || sheep->is_in_hay || d > tracing_distance || ouch > 1000)
 		{
-			// 추격 종료
-			if (org_d > tracing_distance || sheep->is_in_hay || d > tracing_distance || ouch > 1000)
+			is_tracing = false;
+		}
+		else
+		{
+			// 바라보는 각도 계산
+			view_rad = atan2(sheep->z - z, sheep->x - x) * 180 / 3.1415926535;
+
+			// 이동
+			if (d > speed)
 			{
-				is_tracing = false;
+				vx = (sx - x) / d*speed;
+				vz = (sz - z) / d*speed;
 			}
 			else
 			{
-				// 바라보는 각도 계산
-				view_rad = atan2(sheep->z - z, sheep->x - x) * 180 / 3.1415926535;
+				vx = 0;
+				vz = 0;
+			}
+			x += vx;
+			z += vz;
 
-				// 이동
-				if (d > speed)
+			// 충돌체크
+			if (AABB(sheep))
+			{
+				x -= vx;
+				z -= vz;
+				if (sheep->is_invincible == false)
 				{
-					vx = (sx - x) / d*speed;
-					vz = (sz - z) / d*speed;
+					sheep->get_hurt();
 				}
-				else
+			}
+			else
+			{
+				for (int i = 0; i < OB_CNT; ++i)
 				{
-					vx = 0;
-					vz = 0;
-				}
-				x += vx;
-				z += vz;
-
-				// 충돌체크
-				if (AABB(sheep))
-				{
-					x -= vx;
-					z -= vz;
-					if (sheep->is_invincible == false)
+					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN || obstacles[i]->type == HAY)
 					{
-						sheep->get_hurt();
-					}
-				}
-				else
-				{
-					for (int i = 0; i < OB_CNT; ++i)
-					{
-						if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN || obstacles[i]->type == HAY)
+						if (AABB(obstacles[i]))
 						{
-							if (AABB(obstacles[i]))
-							{
-								ouch += DELTA_TIME;
-								x -= vx;
-								z -= vz;
-								break;
-							}
+							ouch += DELTA_TIME;
+							x -= vx;
+							z -= vz;
+							break;
 						}
 					}
 				}
 			}
 		}
-		else
-		{
-			wait_time += DELTA_TIME;
-			if (wait_time > 1000)
-			{
-				ouch = 0;
-				// 바라보는 각도 계산
-				view_rad = atan2(org_z - z, org_x - x) * 180 / 3.1415926535;
-
-				if (org_d > speed)
-				{
-					vx = (org_x - x) / org_d*speed;
-					vz = (org_z - z) / org_d*speed;
-				}
-				else
-				{
-					vx = 0;
-					vz = 0;
-				}
-				x += vx;
-				z += vz;
-			}
-			//추격 재개
-			else if (org_d <= tracing_distance && sheep->is_in_hay == false && d <= tracing_distance && ouch <= 1000)
-			{
-				is_tracing = true;
-				wait_time = 0;
-			}
-
-			// 원점으로 돌아옴
-			if (speed >= abs(org_x - x) && speed >= abs(org_z - z) && d <= tracing_distance && sheep->y == y)
-			{
-				is_tracing = true;
-				wait_time = 0;
-			}
-		}
-
 	}
-void Black_Sheep::update2(Sheep* sheep, Object* obstacles[])
+	else
 	{
-		if (killed)
+		wait_time += DELTA_TIME;
+		if (wait_time > 1000)
 		{
-			if (height >0)
+			ouch = 0;
+			// 바라보는 각도 계산
+			view_rad = atan2(org_z - z, org_x - x) * 180 / 3.1415926535;
+
+			if (org_d > speed)
 			{
-				y--;
-				height -= sheep->speed;
-				//y_scale += 0.01*DELTA_TIME;
+				vx = (org_x - x) / org_d*speed;
+				vz = (org_z - z) / org_d*speed;
 			}
+			else
+			{
+				vx = 0;
+				vz = 0;
+			}
+			x += vx;
+			z += vz;
 		}
-		else { trace_return(sheep, obstacles); }
+		//추격 재개
+		else if (org_d <= tracing_distance && sheep->is_in_hay == false && d <= tracing_distance && ouch <= 1000)
+		{
+			is_tracing = true;
+			wait_time = 0;
+		}
+
+		// 원점으로 돌아옴
+		if (speed >= abs(org_x - x) && speed >= abs(org_z - z) && d <= tracing_distance && sheep->y == y)
+		{
+			is_tracing = true;
+			wait_time = 0;
+		}
 	}
+
+}
+void Black_Sheep::update2(Sheep* sheep, Object* obstacles[])
+{
+	if (killed)
+	{
+		if (height > 0)
+		{
+			y--;
+			height -= sheep->speed;
+			//y_scale += 0.01*DELTA_TIME;
+		}
+	}
+	else { trace_return(sheep, obstacles); }
+}
 void MotherSheep::draw()
 	{
 		glPushMatrix();
@@ -1850,41 +1860,41 @@ int Ui::keyboard(unsigned char key, Sheep* sheep)
 					exit(0);
 				}
 			}
-			else if (*pGameMode == PAUSE_MODE || sheep->killed || ending_screen == 3)
-			{
-				if (ending_screen == 3)
-				{
-					FMOD_Channel_Stop(pSound->Channel[CLEAR_BGM]);
-					ending_screen = 0;
-					sheep->ending_finished = false;
-				}
-				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
-				if (selected_menu == 0) {
-					//이어하기
-					FMOD_Channel_SetPaused(pSound->Channel[GAME_BGM], false);
-					*pGameMode = PLAY_MODE;
-				}
-				else if (selected_menu == 1)
-				{
-					FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GAME_BGM], 0, &pSound->Channel[GAME_BGM]);
-					FMOD_Channel_SetVolume(pSound->Channel[GAME_BGM], GAME_BGM_VOLUME);
-					//다시하기
-					//추가필요
-					//DestroyWorld();
-					//CreateWorld();
-					*pGameMode = PLAY_MODE;
-				}
-				else if (selected_menu == 2)
-				{
-					//메인메뉴로
-					//추가필요
-					//DestroyWorld();
-					*pGameMode = MAIN_MODE;
-					FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
-					FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[MAIN_BGM], 0, &pSound->Channel[MAIN_BGM]);
-				}
-				selected_menu = 0;
-			}
+			//else if (*pGameMode == PAUSE_MODE || sheep->killed || ending_screen == 3)
+			//{
+			//	if (ending_screen == 3)
+			//	{
+			//		FMOD_Channel_Stop(pSound->Channel[CLEAR_BGM]);
+			//		ending_screen = 0;
+			//		sheep->ending_finished = false;
+			//	}
+			//	FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
+			//	if (selected_menu == 0) {
+			//		//이어하기
+			//		FMOD_Channel_SetPaused(pSound->Channel[GAME_BGM], false);
+			//		*pGameMode = PLAY_MODE;
+			//	}
+			//	else if (selected_menu == 1)
+			//	{
+			//		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GAME_BGM], 0, &pSound->Channel[GAME_BGM]);
+			//		FMOD_Channel_SetVolume(pSound->Channel[GAME_BGM], GAME_BGM_VOLUME);
+			//		//다시하기
+			//		//추가필요
+			//		//DestroyWorld();
+			//		//CreateWorld();
+			//		*pGameMode = PLAY_MODE;
+			//	}
+			//	else if (selected_menu == 2)
+			//	{
+			//		//메인메뉴로
+			//		//추가필요
+			//		//DestroyWorld();
+			//		*pGameMode = MAIN_MODE;
+			//		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
+			//		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[MAIN_BGM], 0, &pSound->Channel[MAIN_BGM]);
+			//	}
+			//	selected_menu = 0;
+			//}
 		}
 		if (presskey == false)
 		{
@@ -2077,7 +2087,8 @@ void Ui::draw(Sheep* sheep)
 					glPopMatrix();
 				}
 			}
-			else
+
+			if (*pGameMode == PLAY_MODE)
 			{
 				// 목숨
 				glPushMatrix();
@@ -2104,10 +2115,7 @@ void Ui::draw(Sheep* sheep)
 					glPopMatrix();
 				}
 				glPopMatrix();
-			}
 
-			if (*pGameMode == PLAY_MODE)
-			{
 				//ESC
 				glPushMatrix();
 				glColor3f(1, 1, 1);
@@ -2130,7 +2138,7 @@ void Ui::draw(Sheep* sheep)
 			}
 
 			// 메뉴 - PAUSE_MODE
-			if (*pGameMode == PAUSE_MODE)
+			/*if (*pGameMode == PAUSE_MODE)
 			{
 				glPushMatrix();
 				glColor3f(1, 1, 1);
@@ -2153,7 +2161,7 @@ void Ui::draw(Sheep* sheep)
 				glDisable(GL_TEXTURE_2D);
 				glPopMatrix();
 			}
-			//사망메뉴
+			사망메뉴
 			else if (sheep->killed)
 			{
 				glPushMatrix();
@@ -2175,7 +2183,7 @@ void Ui::draw(Sheep* sheep)
 				glEnd();
 				glDisable(GL_TEXTURE_2D);
 				glPopMatrix();
-			}
+			}*/
 
 
 		}
@@ -2183,20 +2191,20 @@ void Ui::draw(Sheep* sheep)
 		glPopMatrix();
 	}
 void Ui::update()
+{
+	if ((*pGameMode == GAME_OVER || *pGameMode == ENDING_MODE) && selected_menu == 0)
 	{
-		if ((*pGameMode == GAME_OVER || *pGameMode == ENDING_MODE) && selected_menu == 0)
-		{
-			selected_menu = 1;
-		}
-
-		for (auto &k : key_delay)
-		{
-			if (k) { --k; }
-		}
-
-		heart_size += heart_dir*0.00025 * DELTA_TIME;
-
-		if (heart_size > 0.6) { heart_dir = -1; } // 하트 최대 크기
-		else if (heart_size < 0.5) { heart_dir = +1; } // 하트 최소 크기
+		selected_menu = 1;
 	}
+
+	for (auto &k : key_delay)
+	{
+		if (k) { --k; }
+	}
+
+	heart_size += heart_dir*0.00025 * DELTA_TIME;
+
+	if (heart_size > 0.6) { heart_dir = -1; } // 하트 최대 크기
+	else if (heart_size < 0.5) { heart_dir = +1; } // 하트 최소 크기
+}
 
