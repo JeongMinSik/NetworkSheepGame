@@ -51,6 +51,7 @@ struct Object {
 	virtual void draw() = 0;
 	virtual void update1(Sheep**, float frameTime) {};
 	virtual void update2(Sheep*, Object*[], float frameTime) { };
+	virtual void update3(Sheep** sheeps, Object* obstacles[], float frameTime) {};
 	virtual bool is_standing(const Object*) { return false; };
 	virtual bool is_inside(Sheep*) { return false; };
 	virtual bool AABB_surface(const Object*) { return false; };
@@ -136,8 +137,8 @@ struct Black_Sheep : public Object {
 	~Black_Sheep();
 	virtual void draw() override final;
 
-	void trace_return(Sheep* sheep, Object* obstacles[],float frameTime);
-	virtual void update2(Sheep* sheep, Object* obstacles[], float frameTime);
+	void trace_return(Sheep** sheeps, Object* obstacles[],float frameTime);
+	virtual void update3(Sheep** sheeps, Object* obstacles[], float frameTime) ;
 };
 struct MotherSheep {
 	int x = ENDING_X + 250, y = 50, z = 100;

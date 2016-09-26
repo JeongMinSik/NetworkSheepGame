@@ -1612,11 +1612,24 @@ void Black_Sheep::draw()
 		glPopMatrix();
 		glPopMatrix();
 	}
-void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime)
+void Black_Sheep::trace_return(Sheep** sheeps, Object* obstacles[],float frameTime)
 {
-	// 양과의 좌표거리 계산
-	int sx = sheep->x, sz = sheep->z;
-	float d = sqrt(float(sx - x)*float(sx - x) + float(sz - z)*float(sz - z));
+	// 가장 거리가 가까운 양 계산
+	int sx, sz;
+	float d;
+	int minIndex = 0;
+	float min= tracing_distance+1;
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		sx = sheeps[i]->x; sz = sheeps[i]->z;
+		d = sqrt(float(sx - x)*float(sx - x) + float(sz - z)*float(sz - z));
+		if (d < min && !sheeps[minIndex]->is_in_hay) {
+			min = d;
+			minIndex = i;
+		}
+	}
+	sx = sheeps[minIndex]->x; sz = sheeps[minIndex]->z;
+	d = min;
+	
 	// 원위치와의 계산
 	float org_d = sqrt(float(org_x - x)*float(org_x - x) + float(org_z - z)*float(org_z - z));
 	int vx, vz; // 이동량
@@ -1624,14 +1637,12 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime
 	if (is_tracing)
 	{
 		// 추격 종료
-		if (org_d > tracing_distance || sheep->is_in_hay || d > tracing_distance || ouch > 1000)
-		{
+		if (org_d > tracing_distance || d > tracing_distance || ouch > 1000){
 			is_tracing = false;
 		}
-		else
-		{
+		else{
 			// 바라보는 각도 계산
-			view_rad = atan2(sheep->z - z, sheep->x - x) * 180 / 3.1415926535;
+			view_rad = atan2(sz - z, sx - x) * 180 / 3.1415926535;
 
 			// 이동
 			if (d > speed*frameTime)
@@ -1647,29 +1658,31 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime
 			x += vx;
 			z += vz;
 
-			// 충돌체크
-			if (AABB(sheep))
-			{
-				x -= vx;
-				z -= vz;
-				if (sheep->is_invincible == false)
+			// 양과의 충돌체크
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				if (AABB(sheeps[i]))
 				{
-					sheep->get_hurt();
+					x -= vx;
+					z -= vz;
+					if (sheeps[i]->is_invincible == false){
+						sheeps[i]->get_hurt();
+					}
+					return;
 				}
 			}
-			else
+
+			// 타 장애물들과의 충돌체크
+			for (int i = 0; i < OB_CNT; ++i)
 			{
-				for (int i = 0; i < OB_CNT; ++i)
+				if (obstacles[i] == nullptr) break;
+				if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN || obstacles[i]->type == HAY)
 				{
-					if (obstacles[i]->type == BOX || obstacles[i]->type == BOXWALL || obstacles[i]->type == BRICK || obstacles[i]->type == PUMKIN || obstacles[i]->type == HAY)
+					if (AABB(obstacles[i]))
 					{
-						if (AABB(obstacles[i]))
-						{
-							ouch += frameTime;
-							x -= vx;
-							z -= vz;
-							break;
-						}
+						ouch += frameTime;
+						x -= vx;
+						z -= vz;
+						break;
 					}
 				}
 			}
@@ -1678,19 +1691,16 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime
 	else
 	{
 		wait_time += frameTime;
-		if (wait_time > 1000)
-		{
+		if (wait_time > 1000){
 			ouch = 0;
 			// 바라보는 각도 계산
 			view_rad = atan2(org_z - z, org_x - x) * 180 / 3.1415926535;
 
-			if (org_d > speed*frameTime)
-			{
+			if (org_d > speed*frameTime){
 				vx = (org_x - x) / org_d*speed*frameTime;
 				vz = (org_z - z) / org_d*speed*frameTime;
 			}
-			else
-			{
+			else{
 				vx = 0;
 				vz = 0;
 			}
@@ -1698,14 +1708,14 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime
 			z += vz;
 		}
 		//추격 재개
-		else if (org_d <= tracing_distance && sheep->is_in_hay == false && d <= tracing_distance && ouch <= 1000)
+		else if (org_d <= tracing_distance && d <= tracing_distance && ouch <= 1000)
 		{
 			is_tracing = true;
 			wait_time = 0;
 		}
 
 		// 원점으로 돌아옴
-		if (speed*frameTime >= abs(org_x - x) && speed*frameTime >= abs(org_z - z) && d <= tracing_distance && sheep->y == y)
+		if (speed*frameTime >= abs(org_x - x) && speed*frameTime >= abs(org_z - z) && d <= tracing_distance && sheeps[minIndex]->y == y)
 		{
 			is_tracing = true;
 			wait_time = 0;
@@ -1713,18 +1723,17 @@ void Black_Sheep::trace_return(Sheep* sheep, Object* obstacles[],float frameTime
 	}
 
 }
-void Black_Sheep::update2(Sheep* sheep, Object* obstacles[],float frameTime)
+void Black_Sheep::update3(Sheep** sheeps, Object* obstacles[],float frameTime)
 {
 	if (killed)
 	{
-		if (height > 0)
-		{
+		if (height > 0){
 			y--;
-			height -= sheep->speed*frameTime;
+			height -= sheeps[0]->speed*frameTime*2;
 			//y_scale += 0.01*frameTime;
 		}
 	}
-	else { trace_return(sheep, obstacles,frameTime); }
+	else { trace_return(sheeps, obstacles,frameTime); }
 }
 void MotherSheep::draw()
 	{

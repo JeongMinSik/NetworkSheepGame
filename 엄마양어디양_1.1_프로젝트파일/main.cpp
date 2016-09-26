@@ -32,7 +32,7 @@ Camera *mainCamera;
 int iCurCamera;
 Sheep *mainSheep;
 Ground* ground[GROUND_NUM];
-Object* obstacles[500];
+Object* obstacles[400];
 MotherSheep* mother_sheep;
 int ob_num = 0;
 int Game_Mode = MAIN_MODE;
@@ -400,23 +400,21 @@ GLvoid updateScene(int value)
 				//객체 업데이트 (+스탠딩 상태 확인)
 				sheep->stading_index = -1;
 				for (int i = 0; i < ob_num; ++i) {
-
 					if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
 						sheep->stading_index = i;
-					}
-
-					if (obstacles[i]->type == BLACK_SHEEP) {
-
-						obstacles[i]->update2(sheep, obstacles, frameTime);
 					}
 				}
 			}
 
 			// 장애물 업데이트
 			for (int i = 0; i < ob_num; ++i) {
-				obstacles[i]->update1(sheeps, frameTime);
+				if (obstacles[i]->type == BLACK_SHEEP) {
+					obstacles[i]->update3(sheeps, obstacles, frameTime);
+				}
+				else
+					obstacles[i]->update1(sheeps, frameTime);
 			};
-
+			
 			//양 업데이트
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				switch (sheeps[i]->iGameMode) {
