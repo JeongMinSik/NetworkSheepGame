@@ -224,7 +224,7 @@ void SetTextures()
 }
 void CreateWorld()
 {
-	mainSheep = NetworkManager.m_Players[0].m_pSheep;
+	mainSheep = NetworkManager.m_Players[0].m_pSheep;;
 	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
 	iCurCamera = 0;
 	// 기본 객체
@@ -280,6 +280,8 @@ void CreateWorld()
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 		NetworkManager.m_Players[i].m_pSheep->setSound(pSoundPackage);
 		NetworkManager.m_Players[i].m_pSheep->obCnt = ob_num;
+		NetworkManager.m_Players[i].m_pSheep->pSelectedSheep = mainSheep;
+		NetworkManager.m_Players[i].m_pSheep->pCamera->pSelectedCamera = mainCamera;
 	}
 	NetworkManager.m_ppObstacles = obstacles;
 
@@ -353,78 +355,87 @@ void main()
 	glutSpecialFunc(SpecialKeyboard);
 	glutSpecialUpFunc(SpecialKeyboardUp);
 	glutKeyboardFunc(Keyboard);
-	glutTimerFunc(50, updateScene, 1);
+	glutTimerFunc(FIXED_FRAME_TIME, updateScene, 1);
 	glutDisplayFunc(drawScene);
 	glutReshapeFunc(Reshape);
 	glutMainLoop();
 }
 
 float currentTime = clock();
+float accumulator = 0.0f;
 GLvoid updateScene(int value)
 {
+
 	FMOD_System_Update(g_System);
 
 	float newTime = clock();
 	float frameTime = newTime - currentTime;
 	currentTime = newTime;
 	//printf("FPS:%f \n", 1000.0 / frameTime);
+	accumulator += frameTime;
 
-	ui->update(frameTime);
-
-	switch (Game_Mode)
+	while (accumulator >= FIXED_FRAME_TIME)
 	{
-	case PLAY_MODE:
-		Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
-		// 각각의 양에 대한 카메라, 스탠딩 업데이트
-		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			//카메라 업데이트
-			auto sheep = NetworkManager.m_Players[i].m_pSheep;
-			sheeps[i] = sheep;
+		frameTime = FIXED_FRAME_TIME;
 
-			if (!sheep->killed) {
-				sheep->pCamera->update(frameTime);
+		ui->update(frameTime);
+
+		switch (Game_Mode)
+		{
+		case PLAY_MODE:
+			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
+			// 각각의 양에 대한 카메라, 스탠딩 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				//카메라 업데이트
+				auto sheep = NetworkManager.m_Players[i].m_pSheep;
+				sheeps[i] = sheep;
+
+				if (!sheep->killed) {
+					sheep->pCamera->update(frameTime);
+				}
+
+				//if(!mainSheep->killed)
+				//	mainCamera->update();
+
+				//객체 업데이트 (+스탠딩 상태 확인)
+				sheep->stading_index = -1;
+				for (int i = 0; i < ob_num; ++i) {
+
+					if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+						sheep->stading_index = i;
+					}
+
+					if (obstacles[i]->type == BLACK_SHEEP) {
+
+						obstacles[i]->update2(sheep, obstacles, frameTime);
+					}
+				}
 			}
 
-			//if(!mainSheep->killed)
-			//	mainCamera->update();
-
-			//객체 업데이트 (+스탠딩 상태 확인)
-			sheep->stading_index = -1;
+			// 장애물 업데이트
 			for (int i = 0; i < ob_num; ++i) {
+				obstacles[i]->update1(sheeps, frameTime);
+			};
 
-				if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
-					sheep->stading_index = i;
-				}
-
-				if (obstacles[i]->type == BLACK_SHEEP) {
-
-					obstacles[i]->update2(sheep, obstacles, frameTime);
+			//양 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				switch (sheeps[i]->iGameMode) {
+				case PLAY_MODE:
+					sheeps[i]->update2(ground[0], obstacles, frameTime);
+					break;
+				case GAME_OVER:
+					sheeps[i]->dead_update(frameTime);
+					break;
+				case ENDING_MODE:
+					sheeps[i]->ending_update(frameTime);
+					break;
 				}
 			}
+			delete[] sheeps;
+			break;
 		}
 
-		// 장애물 업데이트
-		for (int i = 0; i < ob_num; ++i) {
-			obstacles[i]->update1(sheeps, frameTime);
-		};
-
-		//양 업데이트
-		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			switch (sheeps[i]->iGameMode) {
-			case PLAY_MODE:
-				sheeps[i]->update2(ground[0], obstacles, frameTime);
-				break;
-			case GAME_OVER:
-				sheeps[i]->dead_update(frameTime);
-				break;
-			case ENDING_MODE:
-				sheeps[i]->ending_update(frameTime);
-				break;
-			}
-		}
-
-		delete[] sheeps;
-		break;
+		accumulator -= FIXED_FRAME_TIME;
 	}
 	glutPostRedisplay();
 	glutTimerFunc(FIXED_FRAME_TIME, updateScene, 1);
@@ -478,18 +489,25 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	if (Game_Mode == PLAY_MODE)
 	{
-		if (mainSheep->iGameMode == PLAY_MODE) {
-			mainCamera->keyboard(key);
-			NetworkManager.keyDown(key);
-		}
-		else if (mainSheep->killed) {
-			if (key == ' ') {
+		if (key == ' ') {
+			if (mainSheep->iGameMode == PLAY_MODE) {
+				mainCamera->keyboard(key);
+				NetworkManager.keyDown(key);
+			}
+			else if (mainSheep->killed) {
+				// 카메라 시점 변환
 				iCurCamera = (iCurCamera + 1) % MAX_PLAYER_CNT;
-				mainCamera = NetworkManager.m_Players[iCurCamera].m_pSheep->pCamera;
+				Sheep *pCurSheep = NetworkManager.m_Players[iCurCamera].m_pSheep;
+				mainCamera = pCurSheep->pCamera;
+				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+					NetworkManager.m_Players[iCurCamera].m_pSheep->pSelectedSheep = pCurSheep;
+					NetworkManager.m_Players[iCurCamera].m_pSheep->pCamera->pSelectedCamera = mainCamera;
+				}
+
 			}
 		}
 	}
-	int retval = ui->keyboard(key, mainSheep);
+	int retval = ui->keyboard(key);
 
 	switch (retval) {
 	case READY_MODE:
@@ -502,17 +520,23 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 GLvoid SpecialKeyboard(int key, int x, int y)
 {
 	ui->special_key(key);
-	if (mainSheep->iGameMode == PLAY_MODE) {
-		mainSheep->special_key(key, obstacles);
-		NetworkManager.keyDown(key);
+	if (Game_Mode == PLAY_MODE && mainSheep->iGameMode == PLAY_MODE) {
+		if ((key == GLUT_KEY_RIGHT && !mainSheep->state[RIGHT_STATE]) || (key == GLUT_KEY_LEFT && !mainSheep->state[LEFT_STATE]) ||
+			(key == GLUT_KEY_UP && ((!mainSheep->state[UP_STATE]) || (!mainSheep->state[JUMP_UP_STATE]))) ||
+			(key == GLUT_KEY_DOWN && ((!mainSheep->state[DOWN_STATE]) || (!mainSheep->state[JUMP_DOWN_STATE])))) {
+			mainSheep->special_key(key, obstacles);
+			NetworkManager.keyDown(key);
+		}
 	}
 }
 
 GLvoid SpecialKeyboardUp(int key, int x, int y)
 {
-	if (mainSheep->iGameMode == PLAY_MODE) {
-		mainSheep->special_key_up(key);
-		NetworkManager.keyUp(key);
+	if (Game_Mode == PLAY_MODE && mainSheep->iGameMode == PLAY_MODE) {
+		if (key == GLUT_KEY_RIGHT || GLUT_KEY_LEFT || GLUT_KEY_UP || GLUT_KEY_DOWN) {
+			mainSheep->special_key_up(key);
+			NetworkManager.keyUp(key);
+		}
 	}
 }
 

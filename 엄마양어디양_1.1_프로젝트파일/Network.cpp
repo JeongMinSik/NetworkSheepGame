@@ -207,6 +207,10 @@ void CNetwork::packetUnpacker()
 			}
 			m_Players[i].m_pSheep->iGameMode = PLAY_MODE;
 		}
+		SoundPackage *pSound = m_Players[0].m_pSheep->pSound;
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GAME_BGM], 0, &pSound->Channel[GAME_BGM]);
+		FMOD_Channel_SetVolume(pSound->Channel[GAME_BGM], GAME_BGM_VOLUME);
+		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CRY_E], 0, &pSound->Channel[CRY_E]);
 
 		break;
 	}

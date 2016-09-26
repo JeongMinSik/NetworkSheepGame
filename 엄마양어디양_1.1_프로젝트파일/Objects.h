@@ -15,6 +15,7 @@ struct Camera {
 	bool view_point;
 	bool is_changing;
 	SoundPackage *pSound;
+	Camera *pSelectedCamera;
 	Camera();
 	~Camera();
 	void Camera::setting();
@@ -75,6 +76,7 @@ struct Sheep : public Object {
 	SoundPackage *pSound;
 	int iGameMode;
 	int obCnt; // 장애물 수
+	Sheep* pSelectedSheep; // 사운드 기준 양
 
 	Sheep(int t, int x, int y, int z, float sp);
 	~Sheep();
@@ -86,6 +88,7 @@ struct Sheep : public Object {
 	void special_key(int key, Object* obstacles[]);
 	void special_key_up(int key);
 	void setSound(SoundPackage* pSound);
+	bool isCloseFromSelectedSheep();
 	
 };
 struct Box : public Object {
@@ -155,7 +158,7 @@ struct Ui {
 	GLuint *pTextures;
 	Ui(int size);
 	~Ui();
-	int keyboard(unsigned char key, Sheep* sheep);
+	int keyboard(unsigned char key);
 	void special_key(int key);
 	void draw(Sheep* sheep);
 	void update(float frameTime);
