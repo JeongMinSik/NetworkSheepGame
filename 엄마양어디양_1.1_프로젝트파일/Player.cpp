@@ -16,3 +16,11 @@ CPlayer::~CPlayer()
 {
 	delete m_pSheep;
 }
+
+void CPlayer::init()
+{
+	delete m_pSheep;
+	Camera *pCamera = new Camera();
+	m_pSheep = new Sheep(SHEEP, pCamera->x, 0, -30, 9);
+	m_pSheep->pCamera = pCamera;
+}

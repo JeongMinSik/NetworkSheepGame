@@ -15,7 +15,8 @@
 #define		PAK_KEY_UP				3
 #define		PAK_KEY_DOWN			4
 #define		PAK_READY				5
-#define		PAK_START				6		
+#define		PAK_START				6	
+#define		PAK_ENDING				7
 
 //////////////////////////////////////////////////////////////////////////////////
 

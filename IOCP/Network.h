@@ -38,6 +38,7 @@ class CNetwork
 	
 	UINT							m_nID;
 	UINT							m_nReadyCount;
+	bool							isPlaying;
 public:
 
 	CNetwork();
@@ -60,6 +61,7 @@ public:
 	bool Login(int id);
 	bool Logout(int id);
 	bool Ready(int id); 
+	bool Finish(int id);
 	bool Start();
 	bool Key(int id, void *buf);
 	bool syncData(void *buf, int id);

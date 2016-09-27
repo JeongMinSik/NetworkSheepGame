@@ -294,3 +294,16 @@ void CNetwork::getReady()
 void CNetwork::keySync()
 {
 }
+
+void CNetwork::finishEnding()
+{
+	char sendData[MAX_PACKET_SIZE] = { 0 };
+	HEADER *pData = (HEADER*)sendData;
+	pData->ucSize = sizeof(HEADER);
+	pData->byPacketID = PAK_ENDING;
+
+	int retval = send(m_socket, sendData, sizeof(HEADER), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
+}

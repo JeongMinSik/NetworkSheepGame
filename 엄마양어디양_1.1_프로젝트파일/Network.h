@@ -29,6 +29,7 @@ public:
 	void keyUp(int);
 	void getReady();
 	void keySync();
+	void finishEnding();
 
 	void initGameMode(int *piGameMode) {
 		m_piGameMode = piGameMode;

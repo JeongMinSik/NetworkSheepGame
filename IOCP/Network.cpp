@@ -24,6 +24,7 @@ CNetwork::CNetwork()
 	m_hIOCP = NULL;
 	m_nID = 0;
 	m_nReadyCount = 0;
+	isPlaying = false;
 }
 
 
@@ -137,9 +138,9 @@ bool CNetwork::acceptThread()
 
 		// 접속차단
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
-		if (m_nID >= MAX_PLAYER_CNT) {
+		if (isPlaying || m_nID >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
-			cout << "[시스템] 벡터 " << MAX_ID_CNT << "칸을 초과하여 새로운 접속차단" << endl;
+			cout << "새로운 클라의 접속을 차단했습니다." << endl;
 			continue;
 		}
 
@@ -280,7 +281,9 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	case PAK_KEY_DOWN: case PAK_KEY_UP:
 		issuccess = Key(id, buf);
 		break;
-
+	case PAK_ENDING:
+		issuccess = Finish(id);
+		break;
 	}
 	return issuccess;
 }
@@ -315,6 +318,7 @@ bool CNetwork::Login(int id)
 bool CNetwork::Logout(int id)
 {
 	m_nID--;
+
 	// 레디상태 해제
 	if (m_vpClientInfo[id]->isReady) {
 		m_vpClientInfo[id]->isReady = false;
@@ -325,6 +329,12 @@ bool CNetwork::Logout(int id)
 	closesocket(m_vpClientInfo[id]->sock);
 	delete  m_vpClientInfo[id];
 	m_vpClientInfo[id] = nullptr;
+
+	// 플레이종료
+	if (m_nID == 0) {
+		isPlaying = false;
+		return true;
+	}
 
 	// 플레이어들에게 접속종료 사실을 알린다.
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
@@ -353,6 +363,7 @@ bool CNetwork::Ready(int id)
 	++m_nReadyCount;
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
+		isPlaying = true;
 		return CNetwork::Start();
 	}
 
@@ -391,6 +402,20 @@ bool CNetwork::Start()
 	}
 
 	printf("게임 시작! \n");
+
+	return true;
+}
+
+bool CNetwork::Finish(int id) {
+	for (auto &data : m_vpClientInfo) {
+		if (data) {
+			data->isReady = false;
+		}
+	}
+	m_nReadyCount = 0;
+	isPlaying = false;
+
+	printf("승자는 %d번 클라! \n",id);
 
 	return true;
 }

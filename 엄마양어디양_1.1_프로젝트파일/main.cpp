@@ -224,7 +224,7 @@ void SetTextures()
 }
 void CreateWorld()
 {
-	mainSheep = NetworkManager.m_Players[0].m_pSheep;;
+	mainSheep = NetworkManager.m_Players[0].m_pSheep;
 	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
 	iCurCamera = 0;
 	// 기본 객체
@@ -365,7 +365,6 @@ float currentTime = clock();
 float accumulator = 0.0f;
 GLvoid updateScene(int value)
 {
-
 	FMOD_System_Update(g_System);
 
 	float newTime = clock();
@@ -383,6 +382,7 @@ GLvoid updateScene(int value)
 		switch (Game_Mode)
 		{
 		case PLAY_MODE:
+		{
 			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
 			// 각각의 양에 대한 카메라, 스탠딩 업데이트
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
@@ -414,7 +414,7 @@ GLvoid updateScene(int value)
 				else
 					obstacles[i]->update1(sheeps, frameTime);
 			};
-			
+
 			//양 업데이트
 			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 				switch (sheeps[i]->iGameMode) {
@@ -425,11 +425,24 @@ GLvoid updateScene(int value)
 					sheeps[i]->dead_update(frameTime);
 					break;
 				case ENDING_MODE:
-					sheeps[i]->ending_update(frameTime);
+					if (i == 0) {
+						NetworkManager.finishEnding();
+					}
+					Game_Mode = ENDING_MODE;
+					mainSheep = NetworkManager.m_Players[i].m_pSheep;
+					for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
+						if (i == j) continue;
+						NetworkManager.m_Players[j].m_pSheep->iGameMode = GAME_OVER;
+						mainCamera = mainSheep->pCamera;
+					}
 					break;
 				}
 			}
 			delete[] sheeps;
+			break;
+		}
+		case ENDING_MODE:
+			mainSheep->ending_update(frameTime);
 			break;
 		}
 
@@ -487,12 +500,12 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 {
 	if (Game_Mode == PLAY_MODE)
 	{
-		if (key == ' ') {
-			if (mainSheep->iGameMode == PLAY_MODE) {
+		if (key == ' ' && mainSheep->iGameMode == PLAY_MODE) {
+			if (!mainSheep->killed) {
 				mainCamera->keyboard(key);
 				NetworkManager.keyDown(key);
 			}
-			else if (mainSheep->killed) {
+			else {
 				// 카메라 시점 변환
 				iCurCamera = (iCurCamera + 1) % MAX_PLAYER_CNT;
 				Sheep *pCurSheep = NetworkManager.m_Players[iCurCamera].m_pSheep;
@@ -501,7 +514,6 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 					NetworkManager.m_Players[iCurCamera].m_pSheep->pSelectedSheep = pCurSheep;
 					NetworkManager.m_Players[iCurCamera].m_pSheep->pCamera->pSelectedCamera = mainCamera;
 				}
-
 			}
 		}
 	}
@@ -511,6 +523,21 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 	case READY_MODE:
 		CreateWorld();
 		NetworkManager.getReady();
+		break;
+	case PLAY_MODE:
+		// 다시시작
+		DestroyWorld();
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			NetworkManager.m_Players[i].init();
+		}
+		CreateWorld();
+		NetworkManager.getReady();
+		break;
+	case MAIN_MODE:
+		DestroyWorld();
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			NetworkManager.m_Players[i].init();
+		}
 		break;
 	}
 }

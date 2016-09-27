@@ -3,7 +3,7 @@
 
 Camera::Camera()
 {
-	x = 0; y = 100;
+	x = 9300; y = 100;
 	canvas_size = 200;
 	view_radius = 0;
 	view_point = FRONT_VIEW;
@@ -245,9 +245,8 @@ void Sheep::ending_update(float frameTime)
 	const int JUMP_MAX = 3;
 
 	// 카메라이동
-	if (abs(pCamera->view_radius + 20.0) > 2.0)
-	{
-		(pCamera->view_radius < -20) ? pCamera->view_radius += 0.5*frameTime : pCamera->view_radius -= 0.5*frameTime;
+	if (abs(pCamera->view_radius + 30.0) > 2.0) {
+		(pCamera->view_radius < -30) ? pCamera->view_radius += 0.25*frameTime : pCamera->view_radius -= 0.25*frameTime;
 		dir = 1, jump_cnt = 0;
 		bsound = true;
 	}
@@ -259,11 +258,11 @@ void Sheep::ending_update(float frameTime)
 
 	last_view = -atan2(aim_z - z, aim_x - x) * 180 / 3.1415926535;
 
-	if (d > speed)
+	if (d > speed*frameTime)
 	{
-		vx = (aim_x - x) / d*speed;
-		vz = (aim_z - z) / d*speed;
-		y -= speed;
+		vx = (aim_x - x) / d*speed*frameTime;
+		vz = (aim_z - z) / d*speed*frameTime;
+		y -= speed*frameTime;
 		if (y < 0) { y = 0; }
 	}
 	else
@@ -284,7 +283,7 @@ void Sheep::ending_update(float frameTime)
 			bsound = false;
 		}
 
-		y += speed*dir;
+		y += speed*dir*frameTime;
 		if (y > jump_height)
 			dir = -1;
 		if (y < 0)
@@ -1838,7 +1837,7 @@ Ui::Ui(int size) : canvas_size(size), selected_menu(0), heart_size(0.5), heart_d
 	}
 Ui::~Ui() { }
 int Ui::keyboard(unsigned char key)
-	{
+{
 		if (*pGameMode == MAIN_MODE && selected_menu == 1 && key_delay[0] == 0)
 		{
 			FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
@@ -1886,41 +1885,29 @@ int Ui::keyboard(unsigned char key)
 					exit(0);
 				}
 			}
-			//else if (*pGameMode == PAUSE_MODE || sheep->killed || ending_screen == 3)
-			//{
-			//	if (ending_screen == 3)
-			//	{
-			//		FMOD_Channel_Stop(pSound->Channel[CLEAR_BGM]);
-			//		ending_screen = 0;
-			//		sheep->ending_finished = false;
-			//	}
-			//	FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
-			//	if (selected_menu == 0) {
-			//		//이어하기
-			//		FMOD_Channel_SetPaused(pSound->Channel[GAME_BGM], false);
-			//		*pGameMode = PLAY_MODE;
-			//	}
-			//	else if (selected_menu == 1)
-			//	{
-			//		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GAME_BGM], 0, &pSound->Channel[GAME_BGM]);
-			//		FMOD_Channel_SetVolume(pSound->Channel[GAME_BGM], GAME_BGM_VOLUME);
-			//		//다시하기
-			//		//추가필요
-			//		//DestroyWorld();
-			//		//CreateWorld();
-			//		*pGameMode = PLAY_MODE;
-			//	}
-			//	else if (selected_menu == 2)
-			//	{
-			//		//메인메뉴로
-			//		//추가필요
-			//		//DestroyWorld();
-			//		*pGameMode = MAIN_MODE;
-			//		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
-			//		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[MAIN_BGM], 0, &pSound->Channel[MAIN_BGM]);
-			//	}
-			//	selected_menu = 0;
-			//}
+			// 엔딩메뉴
+			else if (ending_screen == 3)
+			{
+				FMOD_Channel_Stop(pSound->Channel[CLEAR_BGM]);
+				ending_screen = 0;
+				FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[BUTTON_OK_E], 0, &pSound->Channel[BUTTON_OK_E]);
+				if (selected_menu == 1)
+				{
+					//다시하기
+					*pGameMode = READY_MODE;
+					selected_menu = 0;
+					return PLAY_MODE;
+				}
+				else if (selected_menu == 2)
+				{
+					//메인메뉴로
+					*pGameMode = MAIN_MODE;
+					selected_menu = 0;
+					FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
+					FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[MAIN_BGM], 0, &pSound->Channel[MAIN_BGM]);
+					return MAIN_MODE;
+				}
+			}
 		}
 		if (presskey == false)
 		{
@@ -1928,7 +1915,7 @@ int Ui::keyboard(unsigned char key)
 		}
 
 		return -1;
-	}
+}
 void Ui::special_key(int key)
 {
 	if (presskey == false)
@@ -2062,8 +2049,7 @@ void Ui::draw(Sheep* sheep)
 			static int x = 0, y = 0, z = -500;
 			static int width = 0, height = 0;
 			static int time;
-			if (sheep->ending_finished == false)
-			{
+			if (sheep->ending_finished == false){
 				x = 0, y = 0, z = -500;
 				width = 0, height = 0;
 				time = 0;
@@ -2074,10 +2060,10 @@ void Ui::draw(Sheep* sheep)
 				glColor3f(1, 1, 1);
 				if (x > -150)
 				{
-					x -= FIXED_FRAME_TIME*0.1;
-					y -= FIXED_FRAME_TIME*0.1;
-					width += 0.2 * FIXED_FRAME_TIME;
-					height += 0.2 * FIXED_FRAME_TIME;
+					x -= FIXED_FRAME_TIME*0.25;
+					y -= FIXED_FRAME_TIME*0.25;
+					width += FIXED_FRAME_TIME * 0.5;
+					height += FIXED_FRAME_TIME* 0.5;
 				}
 				else if (ending_screen != 3)
 				{

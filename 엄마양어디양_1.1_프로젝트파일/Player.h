@@ -7,5 +7,6 @@ struct CPlayer
 	int m_nID;
 	CPlayer();
 	~CPlayer();
+	void init();
 };
 
