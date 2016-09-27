@@ -12,11 +12,9 @@ SOCKETINFO::SOCKETINFO()
 	isReady = false;
 
 }
-
 SOCKETINFO::~SOCKETINFO()
 {
 }
-
 
 CNetwork::CNetwork()
 {
@@ -26,8 +24,6 @@ CNetwork::CNetwork()
 	m_nReadyCount = 0;
 	isPlaying = false;
 }
-
-
 CNetwork::~CNetwork()
 {
 }
@@ -50,7 +46,6 @@ void CNetwork::initNetwork()
 	cout << "initNetwork()" << endl;
 
 }
-
 void CNetwork::startServer()
 {
 	// CPU 개수 확인
@@ -67,7 +62,6 @@ void CNetwork::startServer()
 
 	printHostInfo();
 }
-
 void CNetwork::endServer()
 {
 	for (auto &data : m_vpThreadlist){
@@ -77,7 +71,6 @@ void CNetwork::endServer()
 
 	cout << "endServer()" << endl;
 }
-
 void CNetwork::printHostInfo() {
 	char szLocalHostName[512]; // 이 컴퓨터가 네트워크에서 식별되는 이름이 저장될 문자열 버퍼입니다.
 	struct hostent * pLocalHostInformation; // 로컬 호스트의 정보가 담길 구조체의 포인터
@@ -400,6 +393,8 @@ bool CNetwork::Start()
 			transmitProcess(sendData, data->nID);
 		}
 	}
+	
+	CreateWorld();
 
 	printf("게임 시작! \n");
 
@@ -416,6 +411,14 @@ bool CNetwork::Finish(int id) {
 	isPlaying = false;
 
 	printf("승자는 %d번 클라! \n",id);
+
+	// 월드해제
+	for (auto g : ground)
+		delete g;
+	delete mother_sheep;
+	for (int i = 0; i < ob_num; ++i)
+		delete obstacles[i];
+	ob_num = 0;
 
 	return true;
 }
@@ -439,9 +442,21 @@ bool CNetwork::Key(int id, void *buf) {
 	}
 
 	if (pKey->header.byPacketID == PAK_KEY_DOWN) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (m_vpClientInfo[i]->nID == id) {
+				m_vpClientInfo[i]->pSheep->special_key(pKey->key,obstacles);
+				break;
+			}
+		}
 		printf("%d번 클라가 %d 키를 Down! \n", id, pKey->key);
 	}
 	else if (pKey->header.byPacketID == PAK_KEY_UP) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (m_vpClientInfo[i]->nID == id) {
+				m_vpClientInfo[i]->pSheep->special_key_up(pKey->key);
+				break;
+			}
+		}
 		printf("%d번 클라가 %d 키를 Up! \n", id, pKey->key);
 	}
 
@@ -481,6 +496,134 @@ void CNetwork::transmitProcess(void *buf, int id)
 			printf("Error Code: %d \n", WSAGetLastError());
 			return;
 		}
+	}
+}
+
+void CNetwork::CreateWorld()
+{
+
+	// 기본 객체
+	ground[0] = new Ground(-200, -100, -100); // z축 -100~300
+	for (int i = 1; i < GROUND_NUM; ++i){
+		ground[i] = new Ground(ground[0]->x + ground[0]->width*i, ground[0]->y, ground[0]->z);
+	}
+
+	mother_sheep = new MotherSheep();
+
+	// 파일 입력
+	ob_num = 0;
+	std::ifstream fin;
+	fin.open("DATA.txt");
+	while (!fin.eof())
+	{
+		int object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz;
+		fin >> object_type >> xx >> yy >> zz >> sspeed >> max_xx >> max_yy >> max_zz;
+		switch (object_type)
+		{
+		case BOX:
+			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case BRICK:
+			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case BOXWALL:
+			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case SCISSORS:
+			obstacles[ob_num] = new Scissors(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case PUMKIN:
+			obstacles[ob_num] = new Pumkin(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case HAY:
+			obstacles[ob_num] = new Hay(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		case BLACK_SHEEP:
+			obstacles[ob_num] = new Black_Sheep(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			break;
+		}
+		++ob_num;
+	}
+	fin.close();
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+
+		Camera *pCamera = new Camera();
+		m_vpClientInfo[i]->pSheep = new Sheep(SHEEP, pCamera->x, 0, -30, 9);
+		m_vpClientInfo[i]->pSheep->pCamera = pCamera;
+		m_vpClientInfo[i]->pSheep->obCnt = ob_num;
+	}
+
+}
+
+void CNetwork::Timer()
+{
+	while (1) {
+
+		if (!isPlaying) continue;
+
+		float currentTime = clock();
+		float accumulator = 0.0f;
+
+		float newTime = clock();
+		float frameTime = newTime - currentTime;
+		currentTime = newTime;
+		accumulator += frameTime;
+
+		while (accumulator >= FIXED_FRAME_TIME) {
+
+			frameTime = FIXED_FRAME_TIME;
+
+			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
+			// 각각의 양에 대한 카메라, 스탠딩 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				//카메라 업데이트
+				auto sheep = m_vpClientInfo[i]->pSheep;
+				sheeps[i] = sheep;
+
+				if (!sheep->killed) {
+					sheep->pCamera->update(frameTime);
+				}
+
+				//객체 업데이트 (+스탠딩 상태 확인)
+				sheep->stading_index = -1;
+				for (int i = 0; i < ob_num; ++i) {
+					if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+						sheep->stading_index = i;
+					}
+				}
+			}
+
+			// 장애물 업데이트
+			for (int i = 0; i < ob_num; ++i) {
+				if (obstacles[i]->type == BLACK_SHEEP) {
+					obstacles[i]->update3(sheeps, obstacles, frameTime);
+				}
+				else
+					obstacles[i]->update1(sheeps, frameTime);
+			};
+
+			//양 업데이트
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				switch (sheeps[i]->iGameMode) {
+				case PLAY_MODE:
+					sheeps[i]->update2(ground[0], obstacles, frameTime);
+					break;
+				case GAME_OVER:
+					sheeps[i]->dead_update(frameTime);
+					break;
+				case ENDING_MODE:
+					isPlaying = false;
+					break;
+				}
+			}
+			delete[] sheeps;
+			break;
+
+
+			accumulator -= FIXED_FRAME_TIME;
+		}
+
 	}
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "Protocol.h"
+#include "Objects.h"
 
 enum class OP_TYPE
 {
@@ -19,6 +20,7 @@ struct SOCKETINFO
 	char packetBuf[MAX_PACKET_SIZE];
 	int	 iCurrPacketSize; 
 	int	 iStoredPacketSize;
+	Sheep *pSheep;
 
 	//정보
 	int nID;
@@ -34,11 +36,18 @@ class CNetwork
 	vector<SOCKETINFO*>				m_vpClientInfo;
 	SOCKET							m_listenSock;
 	HANDLE							m_hIOCP;
-	mutex							m_lock;
-	
 	UINT							m_nID;
 	UINT							m_nReadyCount;
 	bool							isPlaying;
+
+	//mutex							m_lock;
+	// 게임관련
+	Ground* ground[GROUND_NUM];
+	Object* obstacles[400];
+	MotherSheep* mother_sheep;
+	int ob_num = 0;
+	int Game_Mode = MAIN_MODE;
+
 public:
 
 	CNetwork();
@@ -66,6 +75,8 @@ public:
 	bool Key(int id, void *buf);
 	bool syncData(void *buf, int id);
 	void transmitProcess(void * buf, int id);
+	void CreateWorld();
+	void Timer();
 
 	//아이피주소얻기
 	void printHostInfo();

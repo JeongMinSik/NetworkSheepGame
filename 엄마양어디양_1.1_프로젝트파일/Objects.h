@@ -1,6 +1,5 @@
 #pragma once
 #include "stdafx.h"
-#include "Objects.h"
 
 struct SoundPackage {
 	FMOD_SYSTEM *System;
