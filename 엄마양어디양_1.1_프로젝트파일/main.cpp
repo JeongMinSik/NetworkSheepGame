@@ -385,10 +385,10 @@ GLvoid updateScene(int value)
 		{
 			Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
 			// 각각의 양에 대한 카메라, 스탠딩 업데이트
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
 				//카메라 업데이트
-				auto sheep = NetworkManager.m_Players[i].m_pSheep;
-				sheeps[i] = sheep;
+				auto sheep = NetworkManager.m_Players[j].m_pSheep;
+				sheeps[j] = sheep;
 
 				if (!sheep->killed) {
 					sheep->pCamera->update(frameTime);

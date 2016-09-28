@@ -211,7 +211,6 @@ void CNetwork::packetUnpacker()
 		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[GAME_BGM], 0, &pSound->Channel[GAME_BGM]);
 		FMOD_Channel_SetVolume(pSound->Channel[GAME_BGM], GAME_BGM_VOLUME);
 		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CRY_E], 0, &pSound->Channel[CRY_E]);
-
 		break;
 	}
 	case PAK_KEY_DOWN:
@@ -244,13 +243,13 @@ void CNetwork::packetUnpacker()
 		SC_SYNC sync;
 		memcpy(&sync, m_saveBuf, sizeof(SC_SYNC));
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			for (int j = 0; j < MAX_PLAYER_CNT; ++i) {
+			for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
 				if (m_Players[i].m_nID == sync.positions[j].ID) {
 					m_Players[i].m_pSheep->x = sync.positions[j].x;
 					m_Players[i].m_pSheep->y = sync.positions[j].y;
 					m_Players[i].m_pSheep->z = sync.positions[j].z;
 					m_Players[i].m_pSheep->pCamera->x = sync.positions[j].x;
-					m_Players[i].m_pSheep->pCamera->y = sync.positions[j].y+100;
+					//m_Players[i].m_pSheep->pCamera->y = sync.positions[j].y+100;
 					break;
 				}
 			}

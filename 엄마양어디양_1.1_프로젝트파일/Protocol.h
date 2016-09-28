@@ -3,11 +3,11 @@
 
 //////////////////////////////////////////////////////////////////////////////////
 
-#define		MAX_PACKET_SIZE			1024
+#define		MAX_PACKET_SIZE			128
 #define		SERVER_PORT				9000
-#define		SERVERADDR				"127.0.0.1"
+#define		SERVERADDR				"192.168.183.192"
 #define		MAX_ID_CNT				10
-#define		MAX_PLAYER_CNT			1
+#define		MAX_PLAYER_CNT			2
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -23,8 +23,7 @@
 
 // 단위는 밀리세컨드, FPS 62.5
 #define FIXED_FRAME_TIME	16   // 최저프레임시간
-
-
+#define MILISEC_PER_SYNC	35	// 한 싱크당 시간 
 
 #pragma pack(push, 1)																				 
 //////////////////////////////////////////////////////////////////////////////////

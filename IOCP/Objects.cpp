@@ -3,7 +3,7 @@
 
 Camera::Camera()
 {
-	x = 9300; y = 100;
+	x = 0; y = 100;
 	canvas_size = 200;
 	view_radius = 0;
 	view_point = FRONT_VIEW;
@@ -108,7 +108,6 @@ void Sheep::dead_update(float frameTime)
 		}
 	}
 }
-
 void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 {
 	//¿£µù
@@ -613,7 +612,7 @@ void Box::update1(Sheep** sheeps, float frameTime)
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (AABB(sheeps[i])) {
 				sheeps[i]->x += speed*frameTime;
-				pCamera->x += speed*frameTime;
+				sheeps[i]->pCamera->x += speed*frameTime;
 			}
 		}
 
@@ -628,7 +627,7 @@ void Box::update1(Sheep** sheeps, float frameTime)
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (AABB(sheeps[i])) {
 				sheeps[i]->x -= speed*frameTime;
-				pCamera->x -= speed*frameTime;
+				sheeps[i]->pCamera->x -= speed*frameTime;
 			}
 		}
 		if (abs(x - org_x) >= abs(max_x)) {

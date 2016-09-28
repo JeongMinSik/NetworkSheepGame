@@ -320,12 +320,18 @@ bool CNetwork::Logout(int id)
 
 	// 소켓을 닫는다.
 	closesocket(m_vpClientInfo[id]->sock);
-	delete  m_vpClientInfo[id];
-	m_vpClientInfo[id] = nullptr;
+	m_vpClientInfo[id]->sock = NULL;
 
 	// 플레이종료
 	if (m_nID == 0) {
 		isPlaying = false;
+		m_lock.lock();
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			delete m_vpClientInfo[i];
+			m_vpClientInfo[i] = nullptr;
+		}
+		m_lock.unlock();
+		printf("모든 플레이어가 접속을 종료!");
 		return true;
 	}
 
@@ -339,7 +345,7 @@ bool CNetwork::Logout(int id)
 	pData->readyCount = m_nReadyCount;
 
 	for (auto &data : m_vpClientInfo){
-		if (data){
+		if (data && data->sock){
 			transmitProcess(sendData, data->nID);
 		}
 	}
@@ -356,7 +362,6 @@ bool CNetwork::Ready(int id)
 	++m_nReadyCount;
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
-		isPlaying = true;
 		return CNetwork::Start();
 	}
 
@@ -368,7 +373,7 @@ bool CNetwork::Ready(int id)
 	pData->readyCount = m_nReadyCount;
 
 	for (auto &data : m_vpClientInfo) {
-		if (data) {
+		if (data && data->sock) {
 			transmitProcess(sendData, data->nID);
 		}
 	}
@@ -388,13 +393,14 @@ bool CNetwork::Start()
 		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
 	}
 
+	CreateWorld();
+
 	for (auto &data : m_vpClientInfo) {
-		if (data) {
+		if (data && data->sock) {
 			transmitProcess(sendData, data->nID);
 		}
 	}
-	
-	CreateWorld();
+	isPlaying = true;
 
 	printf("게임 시작! \n");
 
@@ -403,7 +409,7 @@ bool CNetwork::Start()
 
 bool CNetwork::Finish(int id) {
 	for (auto &data : m_vpClientInfo) {
-		if (data) {
+		if (data && data->sock) {
 			data->isReady = false;
 		}
 	}
@@ -431,6 +437,7 @@ bool CNetwork::Key(int id, void *buf) {
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
 				m_vpClientInfo[i]->pSheep->special_key(pKey->key,obstacles);
+				m_vpClientInfo[i]->pSheep->pCamera->keyboard(pKey->key);
 				break;
 			}
 		}
@@ -464,7 +471,7 @@ bool CNetwork::Sync()
 	}
 
 	for (auto &data : m_vpClientInfo) {
-		if (data) {
+		if (data && data->sock) {
 			transmitProcess(sendData, data->nID);
 		}
 	}
@@ -569,6 +576,9 @@ void CNetwork::Timer()
 
 		while (1) {
 
+			if (!isPlaying) break;
+			m_lock.lock();
+
 			float frameTime = clock() - currentTime;
 			
 			// 고정프레임
@@ -642,8 +652,7 @@ void CNetwork::Timer()
 				accumulator -= FIXED_FRAME_TIME;
 			}
 
-			printf("x:%f \n", m_vpClientInfo[0]->pSheep->x);
-	
+			m_lock.unlock();
 		}
 
 	}
@@ -658,7 +667,7 @@ void CNetwork::err_quit(char * msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&lpMsgBuf, 0, NULL);
-	MessageBox(NULL, (LPCTSTR)lpMsgBuf, (LPCWSTR)msg, MB_ICONERROR);
+	MessageBox(NULL, (LPCTSTR)lpMsgBuf, msg, MB_ICONERROR);
 	exit(1);
 }
 
@@ -671,6 +680,6 @@ void CNetwork::err_display(char * msg)
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&lpMsgBuf, 0, NULL);
 	//MessageBox(NULL, (LPCTSTR)lpMsgBuf, (LPCWSTR)msg, MB_ICONERROR);
-	printf("[%s] %s", msg, (char *)lpMsgBuf);
+	printf("[%s] %s", msg, lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }

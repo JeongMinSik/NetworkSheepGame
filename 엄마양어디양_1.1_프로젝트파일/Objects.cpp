@@ -3,7 +3,7 @@
 
 Camera::Camera()
 {
-	x = 9300; y = 100;
+	x = 0; y = 100;
 	canvas_size = 200;
 	view_radius = 0;
 	view_point = FRONT_VIEW;
@@ -1055,94 +1055,94 @@ bool Box::is_standing(const Object* other)
 		if (z >= other->z + other->depth) return false;
 		return true;
 	}
-void Box::update1(Sheep** sheeps,float frameTime)
+void Box::update1(Sheep** sheeps, float frameTime)
+{
+	if (state_x == RIGHT_STATE)
 	{
-		if (state_x == RIGHT_STATE)
-		{
-			x += speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])){
-					sheeps[i]->x += speed*frameTime;
-					pCamera->x += speed*frameTime;
-				}
+		x += speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->x += speed*frameTime;
+				sheeps[i]->pCamera->x += speed*frameTime;
 			}
+		}
 
-			if (abs(x - org_x) >= abs(max_x)) {
-				state_x = LEFT_STATE;
-				x = org_x+ max_x - speed*frameTime;
-			}
-		}
-		if (state_x == LEFT_STATE)
-		{
-			x -= speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->x -= speed*frameTime;
-					pCamera->x -= speed*frameTime;
-				}
-			}
-			if (abs(x - org_x) >= abs(max_x)) {
-				state_x = RIGHT_STATE;
-				x = org_x - max_x + speed*frameTime;
-			}
-		}
-		if (state_z == UP_STATE)
-		{
-			z += speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->z += speed*frameTime;
-				}
-			}
-			if (abs(z - org_z) >= abs(max_z))
-			{
-				state_z = DOWN_STATE;
-				z -= 2 * speed*frameTime;
-			}
-		}
-		else if (state_z == DOWN_STATE)
-		{
-			z -= speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->z -= speed*frameTime;
-				}
-			}
-			if (abs(z - org_z) >= abs(max_z))
-			{
-				state_z = UP_STATE;
-				z += 2 * speed*frameTime;
-			}
-		}
-		if (state_y == JUMP_UP_STATE)
-		{
-			y += speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->y += speed*frameTime;
-				}
-			}
-			if (abs(y - org_y) >= abs(max_y))
-			{
-				state_y = JUMP_DOWN_STATE;
-				y -= 2 * speed*frameTime;
-			}
-		}
-		else if (state_y == JUMP_DOWN_STATE)
-		{
-			y -= speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->y -= speed*frameTime;
-				}
-			}
-			if (abs(y - org_y) >= abs(max_y))
-			{
-				state_y = JUMP_UP_STATE;
-				y += 2 * speed*frameTime;
-			}
+		if (abs(x - org_x) >= abs(max_x)) {
+			state_x = LEFT_STATE;
+			x = org_x + max_x - speed*frameTime;
 		}
 	}
+	if (state_x == LEFT_STATE)
+	{
+		x -= speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->x -= speed*frameTime;
+				sheeps[i]->pCamera->x -= speed*frameTime;
+			}
+		}
+		if (abs(x - org_x) >= abs(max_x)) {
+			state_x = RIGHT_STATE;
+			x = org_x - max_x + speed*frameTime;
+		}
+	}
+	if (state_z == UP_STATE)
+	{
+		z += speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->z += speed*frameTime;
+			}
+		}
+		if (abs(z - org_z) >= abs(max_z))
+		{
+			state_z = DOWN_STATE;
+			z -= 2 * speed*frameTime;
+		}
+	}
+	else if (state_z == DOWN_STATE)
+	{
+		z -= speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->z -= speed*frameTime;
+			}
+		}
+		if (abs(z - org_z) >= abs(max_z))
+		{
+			state_z = UP_STATE;
+			z += 2 * speed*frameTime;
+		}
+	}
+	if (state_y == JUMP_UP_STATE)
+	{
+		y += speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->y += speed*frameTime;
+			}
+		}
+		if (abs(y - org_y) >= abs(max_y))
+		{
+			state_y = JUMP_DOWN_STATE;
+			y -= 2 * speed*frameTime;
+		}
+	}
+	else if (state_y == JUMP_DOWN_STATE)
+	{
+		y -= speed*frameTime;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (AABB(sheeps[i])) {
+				sheeps[i]->y -= speed*frameTime;
+			}
+		}
+		if (abs(y - org_y) >= abs(max_y))
+		{
+			state_y = JUMP_UP_STATE;
+			y += 2 * speed*frameTime;
+		}
+	}
+}
 
 
 Scissors::Scissors(int t, float x, float y, float z, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : Object(t, x, y, z, 40, 8, 35, sp, m_x, m_y, m_z) {

@@ -40,7 +40,7 @@ class CNetwork
 	UINT							m_nReadyCount;
 	bool							isPlaying;
 
-	//mutex							m_lock;
+	mutex							m_lock;
 	// 게임관련
 	Ground* ground[GROUND_NUM];
 	Object* obstacles[400];
