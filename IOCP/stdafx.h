@@ -20,7 +20,8 @@ using namespace std;
 
 #define		GROUND_NUM				10  // 바닥갯수
 #define		ENDING_X				9500
-#define		OB_CNT					350
+#define		OB_CNT					320
+#define		MOVING_OB_CNT			127
 
 enum { MAIN_MODE, READY_MODE, PLAY_MODE, PAUSE_MODE, GAME_OVER, ENDING_MODE }; // 게임상태
 enum { DOWN_VIEW, FRONT_VIEW }; //카메라 시점

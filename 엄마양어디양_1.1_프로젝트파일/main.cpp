@@ -32,7 +32,7 @@ Camera *mainCamera;
 int iCurCamera;
 Sheep *mainSheep;
 Ground* ground[GROUND_NUM];
-Object* obstacles[400];
+Object* obstacles[OB_CNT];
 MotherSheep* mother_sheep;
 int ob_num = 0;
 int Game_Mode = MAIN_MODE;
@@ -254,21 +254,25 @@ void CreateWorld()
 			break;
 		case BRICK:
 			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			NetworkManager.m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case BOXWALL:
 			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
 			break;
 		case SCISSORS:
 			obstacles[ob_num] = new Scissors(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			NetworkManager.m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case PUMKIN:
 			obstacles[ob_num] = new Pumkin(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			NetworkManager.m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case HAY:
 			obstacles[ob_num] = new Hay(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
 			break;
 		case BLACK_SHEEP:
 			obstacles[ob_num] = new Black_Sheep(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			NetworkManager.m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		}
 		obstacles[ob_num]->pTextures = textures;
@@ -283,7 +287,8 @@ void CreateWorld()
 		NetworkManager.m_Players[i].m_pSheep->pSelectedSheep = mainSheep;
 		NetworkManager.m_Players[i].m_pSheep->pCamera->pSelectedCamera = mainCamera;
 	}
-	NetworkManager.m_ppObstacles = obstacles;
+
+	printf("µ¿Àû°´Ã¼°¹¼ö: %d \n", NetworkManager.m_vpMovingObject.size());
 
 	/*
 	°´Ã¼¹è¿­ ÆÄÀÏÃâ·Â
@@ -367,16 +372,14 @@ GLvoid updateScene(int value)
 {
 	FMOD_System_Update(g_System);
 
-	float newTime = clock();
-	float frameTime = newTime - currentTime;
-	currentTime = newTime;
-	//printf("FPS:%f \n", 1000.0 / frameTime);
+	float frameTime = clock() - currentTime;
+	currentTime = clock();
 	accumulator += frameTime;
+	//printf("FPS:%f \n", 1000.0 / frameTime);
 
 	while (accumulator >= FIXED_FRAME_TIME)
 	{
 		frameTime = FIXED_FRAME_TIME;
-
 		ui->update(frameTime);
 
 		switch (Game_Mode)
@@ -546,10 +549,12 @@ GLvoid SpecialKeyboard(int key, int x, int y)
 {
 	ui->special_key(key);
 	if (Game_Mode == PLAY_MODE && mainSheep->iGameMode == PLAY_MODE) {
-		if ((key == GLUT_KEY_RIGHT && !mainSheep->state[RIGHT_STATE]) || (key == GLUT_KEY_LEFT && !mainSheep->state[LEFT_STATE]) ||
-			(key == GLUT_KEY_UP && ((!mainSheep->state[UP_STATE]) || (!mainSheep->state[JUMP_UP_STATE]))) ||
-			(key == GLUT_KEY_DOWN && ((!mainSheep->state[DOWN_STATE]) || (!mainSheep->state[JUMP_DOWN_STATE])))) {
-			mainSheep->special_key(key, obstacles);
+		if ((key == GLUT_KEY_RIGHT && !mainSheep->state[RIGHT_STATE]) || 
+			(key == GLUT_KEY_LEFT && !mainSheep->state[LEFT_STATE]) ||
+			(key == GLUT_KEY_UP && (!mainSheep->state[UP_STATE] && mainSheep->pCamera->view_point == DOWN_VIEW)) ||
+			(key == GLUT_KEY_UP && (!mainSheep->state[JUMP_UP_STATE] && mainSheep->pCamera->view_point == FRONT_VIEW)) ||
+			(key == GLUT_KEY_DOWN && (!mainSheep->state[DOWN_STATE] && mainSheep->pCamera->view_point == DOWN_VIEW))){
+			mainSheep->special_key(key);
 			NetworkManager.keyDown(key);
 		}
 	}

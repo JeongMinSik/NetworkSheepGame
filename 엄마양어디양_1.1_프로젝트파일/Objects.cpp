@@ -897,7 +897,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 	}
 
 }
-void Sheep::special_key(int key, Object* obstacles[])
+void Sheep::special_key(int key)
 {
 	if (key == GLUT_KEY_RIGHT) {
 		state[RIGHT_STATE] = true;

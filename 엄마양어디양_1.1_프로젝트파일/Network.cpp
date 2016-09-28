@@ -83,6 +83,26 @@ void CNetwork::endServer()
 	cout << "endServer() Clear!" << endl;
 }
 
+// 사용자 정의 데이터 수신 함수
+int recvn(SOCKET s, char *buf, int len, int flags)
+{
+	int received;
+	char *ptr = buf;
+	int left = len;
+
+	while (left > 0) {
+		received = recv(s, ptr, left, flags);
+		if (received == SOCKET_ERROR)
+			return SOCKET_ERROR;
+		else if (received == 0)
+			break;
+		left -= received;
+		ptr += received;
+	}
+
+	return (len - left);
+}
+
 void CNetwork::recvThreadFunc()
 {
 	char recvBuf[MAX_PACKET_SIZE] = { 0 };
@@ -98,7 +118,7 @@ void CNetwork::recvThreadFunc()
 			err_display("recv()");
 			break;
 		}
-
+		int packetSize;
 		// 패킷조립
 		while (1) {
 
@@ -108,19 +128,20 @@ void CNetwork::recvThreadFunc()
 			else if (sizeof(HEADER) <= m_nLeft + retval) {
 				if (m_nLeft == 0) {
 					memcpy(m_saveBuf, recvBuf, retval);
+					packetSize = ((HEADER*)m_saveBuf)->ucSize;
 					m_nLeft = retval;
 					retval = 0;
 				}
 				else {
 
-					if (m_saveBuf[0] <= m_nLeft + retval) {
+					if (packetSize <= m_nLeft + retval) {
 
-						if (m_saveBuf[0] <= m_nLeft) {
+						if (packetSize <= m_nLeft) {
 							// 패킷처리
 							packetUnpacker();
 						}
 						else {
-							int lack = m_saveBuf[0] - m_nLeft;
+							int lack = packetSize - m_nLeft;
 							memcpy(m_saveBuf + m_nLeft, recvBuf, lack);
 							m_nLeft += lack;
 							memmove(recvBuf, recvBuf + lack, retval - lack);
@@ -130,7 +151,7 @@ void CNetwork::recvThreadFunc()
 					else {
 						memcpy(m_saveBuf + m_nLeft, recvBuf, retval);
 						m_nLeft += retval;
-						return;
+						break;
 					}
 				}
 			}
@@ -140,15 +161,14 @@ void CNetwork::recvThreadFunc()
 				retval = 0;
 			}
 		}
+
 	}
 }
 
 void CNetwork::packetUnpacker()
 {
-
-	//cout << "패킷아이디:" << (int)header.byPacketID << endl;
-	//cout << "size:" << (int)m_saveBuf[0] << " ID: " << (int)m_saveBuf[1] << endl;
-	switch (m_saveBuf[1])
+	HEADER *pHeader = (HEADER*)m_saveBuf;
+	switch (pHeader->byPacketID)
 	{
 	case PAK_LOGIN:
 	{
@@ -219,7 +239,7 @@ void CNetwork::packetUnpacker()
 		memcpy(&keyDown, m_saveBuf, sizeof(SC_KEY));
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_Players[i].m_nID == keyDown.ID) {
-				m_Players[i].m_pSheep->special_key(keyDown.key,m_ppObstacles);
+				m_Players[i].m_pSheep->special_key(keyDown.key);
 				m_Players[i].m_pSheep->pCamera->keyboard(keyDown.key);
 				break;
 			}
@@ -240,29 +260,38 @@ void CNetwork::packetUnpacker()
 	}
 	case PAK_SYNC:
 	{
+		printf("싱크조정시작 \n");
 		SC_SYNC sync;
 		memcpy(&sync, m_saveBuf, sizeof(SC_SYNC));
+		// 양들 동기화
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
-				if (m_Players[i].m_nID == sync.positions[j].ID) {
-					m_Players[i].m_pSheep->x = sync.positions[j].x;
-					m_Players[i].m_pSheep->y = sync.positions[j].y;
-					m_Players[i].m_pSheep->z = sync.positions[j].z;
-					m_Players[i].m_pSheep->pCamera->x = sync.positions[j].x;
-					//m_Players[i].m_pSheep->pCamera->y = sync.positions[j].y+100;
+				if (m_Players[i].m_nID == sync.sheep_ID[j]) {
+					m_Players[i].m_pSheep->x = sync.sheep_pos[j].x;
+					m_Players[i].m_pSheep->y = sync.sheep_pos[j].y;
+					m_Players[i].m_pSheep->z = sync.sheep_pos[j].z;
+					m_Players[i].m_pSheep->pCamera->x = sync.sheep_pos[j].x;
 					break;
 				}
 			}
 		}
+		// 동적객체 동기화
+		for (int i = 0; i < MOVING_OB_CNT; ++i) {
+			m_vpMovingObject[i]->x = sync.object_pos[i].x;
+			m_vpMovingObject[i]->y = sync.object_pos[i].y;
+			m_vpMovingObject[i]->z = sync.object_pos[i].z;
+		}
+
+		printf("싱크조정끝 \n");
 		break;
 
 	}
 	default:
-		cout << "패킷 ID오류:" <<m_saveBuf[1]<< endl;
+		cout << "패킷 ID오류:" << pHeader->byPacketID << endl;
 		break;
 	}
-	m_nLeft -= m_saveBuf[0];
-	memmove(m_saveBuf, m_saveBuf + m_saveBuf[0], m_nLeft);
+	m_nLeft -= pHeader->ucSize;
+	memmove(m_saveBuf, m_saveBuf + pHeader->ucSize, m_nLeft);
 
 }
 
@@ -307,10 +336,6 @@ void CNetwork::getReady()
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
-}
-
-void CNetwork::keySync()
-{
 }
 
 void CNetwork::finishEnding()

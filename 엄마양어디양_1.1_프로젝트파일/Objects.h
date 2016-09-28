@@ -85,7 +85,7 @@ struct Sheep : public Object {
 	void ending_update(float frameTime);
 	virtual void draw() override final;
 	virtual void update2(const Ground* ground, Object* obstacles[], float frameTime);
-	void special_key(int key, Object* obstacles[]);
+	void special_key(int key);
 	void special_key_up(int key);
 	void setSound(SoundPackage* pSound);
 	bool isCloseFromSelectedSheep();

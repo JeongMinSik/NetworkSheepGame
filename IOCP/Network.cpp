@@ -197,12 +197,12 @@ void CNetwork::workerThread()
 			// 패킷조립 및 실행
 			unsigned recvSize = IOsize;
 			char *recvBuf = sockInfo->IOBuf;
-
+			HEADER* pHeader = (HEADER*)recvBuf;
 			while (0 < recvSize){
 
 				//현재 처리하는 패킷이 없을 경우 recvBuf의 첫번째 바이트를 사이즈로 설정
 				if (0 == sockInfo->iCurrPacketSize){
-					sockInfo->iCurrPacketSize = recvBuf[0];
+					sockInfo->iCurrPacketSize = pHeader->ucSize;
 				}
 
 				// 패킷을 만들기 위해 필요한 남은 사이즈 = 현재 받아야할 패킷사이즈 - 현재까지 저장한 패킷사이즈
@@ -260,7 +260,8 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	//cout << "패킷 처리"<< (int)buf[1] << endl;
 	bool issuccess = true;
 
-	switch (buf[1])
+	HEADER *pHeader = (HEADER*)buf;
+	switch (pHeader->byPacketID)
 	{
 	case PAK_LOGIN:
 		issuccess = Login(id);
@@ -395,12 +396,12 @@ bool CNetwork::Start()
 
 	CreateWorld();
 
+	isPlaying = true;
 	for (auto &data : m_vpClientInfo) {
 		if (data && data->sock) {
 			transmitProcess(sendData, data->nID);
 		}
 	}
-	isPlaying = true;
 
 	printf("게임 시작! \n");
 
@@ -432,8 +433,22 @@ bool CNetwork::Finish(int id) {
 bool CNetwork::Key(int id, void *buf) {
 
 	CS_KEY *pKey = (CS_KEY*)((CHAR*)buf);
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_KEY *pData = (SC_KEY*)sendData;
+	pData->header.ucSize = sizeof(SC_KEY);
+	pData->ID = id;
+	pData->key = pKey->key;
+	pData->header.byPacketID = pKey->header.byPacketID;
 
-	if (pKey->header.byPacketID == PAK_KEY_DOWN) {
+	for (auto &data : m_vpClientInfo) {
+		if (data && data->sock) {
+			if (data->nID == id) continue;
+			transmitProcess(sendData, data->nID);
+		}
+	}
+
+	if (pData->header.byPacketID == PAK_KEY_DOWN) {
+		printf("%d번클라가 %d키를 Down! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
 				m_vpClientInfo[i]->pSheep->special_key(pKey->key,obstacles);
@@ -441,16 +456,15 @@ bool CNetwork::Key(int id, void *buf) {
 				break;
 			}
 		}
-		printf("%d번 클라가 %d 키를 Down! \n", id, pKey->key);
 	}
-	else if (pKey->header.byPacketID == PAK_KEY_UP) {
+	else if (pData->header.byPacketID == PAK_KEY_UP) {
+		printf("%d번클라가 %d키를 Up! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
 				m_vpClientInfo[i]->pSheep->special_key_up(pKey->key);
 				break;
 			}
 		}
-		printf("%d번 클라가 %d 키를 Up! \n", id, pKey->key);
 	}
 
 	return true;
@@ -464,10 +478,16 @@ bool CNetwork::Sync()
 	pData->header.byPacketID = PAK_SYNC;
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-		pData->positions[i].ID = m_vpClientInfo[i]->nID;
-		pData->positions[i].x = m_vpClientInfo[i]->pSheep->x;
-		pData->positions[i].y = m_vpClientInfo[i]->pSheep->y;
-		pData->positions[i].z = m_vpClientInfo[i]->pSheep->z;
+		pData->sheep_ID[i] = m_vpClientInfo[i]->nID;
+		pData->sheep_pos[i].x = m_vpClientInfo[i]->pSheep->x;
+		pData->sheep_pos[i].y = m_vpClientInfo[i]->pSheep->y;
+		pData->sheep_pos[i].z = m_vpClientInfo[i]->pSheep->z;
+	}
+
+	for (int i = 0; i < MOVING_OB_CNT; ++i) {
+		pData->object_pos[i].x = m_vpMovingObject[i]->x;
+		pData->object_pos[i].y = m_vpMovingObject[i]->y;
+		pData->object_pos[i].z = m_vpMovingObject[i]->z;
 	}
 
 	for (auto &data : m_vpClientInfo) {
@@ -481,7 +501,7 @@ bool CNetwork::Sync()
 void CNetwork::transmitProcess(void *buf, int id)
 {
 	SOCKETINFO *psock = new SOCKETINFO;
-	UCHAR paksize = ((UCHAR*)buf)[0];
+	auto paksize = ((HEADER*)buf)->ucSize;
 
 	memcpy(psock->IOBuf, buf, paksize);
 	psock->optype = OP_TYPE::OP_SEND;
@@ -533,21 +553,25 @@ void CNetwork::CreateWorld()
 			break;
 		case BRICK:
 			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case BOXWALL:
 			obstacles[ob_num] = new Box(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
 			break;
 		case SCISSORS:
 			obstacles[ob_num] = new Scissors(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case PUMKIN:
 			obstacles[ob_num] = new Pumkin(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		case HAY:
 			obstacles[ob_num] = new Hay(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
 			break;
 		case BLACK_SHEEP:
 			obstacles[ob_num] = new Black_Sheep(object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz);
+			m_vpMovingObject.push_back(obstacles[ob_num]);
 			break;
 		}
 		++ob_num;
@@ -570,6 +594,7 @@ void CNetwork::Timer()
 
 		if (!isPlaying) continue;
 
+		Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
 		float currentTime = clock();
 		float accumulator = 0.0f;
 		float syncTime = 0.0f;
@@ -580,29 +605,21 @@ void CNetwork::Timer()
 			m_lock.lock();
 
 			float frameTime = clock() - currentTime;
-			
+			currentTime = clock();
+
 			// 고정프레임
 			if (frameTime < FIXED_FRAME_TIME) {
 				Sleep(FIXED_FRAME_TIME - frameTime);
 				frameTime = FIXED_FRAME_TIME;
 			}
 
-			currentTime = clock();
 			accumulator += frameTime;
-			// printf("FPS:%f \n", 1000.0 / frameTime);
-
-			syncTime += frameTime;
-			if (MILISEC_PER_SYNC < syncTime) {
-				syncTime-=MILISEC_PER_SYNC;	
-				// 변화한 위치값 전송
-				Sync();
-			}
+			//printf("FPS:%f \n", 1000.0 / frameTime);
 
 			while (accumulator >= FIXED_FRAME_TIME) {
 
 				frameTime = FIXED_FRAME_TIME;
 
-				Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
 				// 각각의 양에 대한 카메라, 스탠딩 업데이트
 				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 					//카메라 업데이트
@@ -645,16 +662,24 @@ void CNetwork::Timer()
 						break;
 					}
 				}
-				delete[] sheeps;
-				break;
 
-
-				accumulator -= FIXED_FRAME_TIME;
+				printf("%f \n", syncTime);
+				accumulator -= FIXED_FRAME_TIME; 
+				syncTime += FIXED_FRAME_TIME;
+				if (MILISEC_PER_SYNC < syncTime) {
+					syncTime -= MILISEC_PER_SYNC;
+					// 변화한 위치값 전송
+					//printf("싱크전송을 시작합니다.");
+					Sync();
+				}
 			}
+			
+			
 
 			m_lock.unlock();
 		}
 
+		delete[] sheeps;
 	}
 }
 

@@ -9,6 +9,8 @@
 #include <fstream>
 #include <gl/glut.h>
 #include <ctime>
+#include <vector>
+#include <mutex>
 
 #include "Protocol.h"
 using namespace FMOD;
@@ -19,7 +21,7 @@ using namespace std;
 #define		GAME_BGM_VOLUME			0.4
 #define		GROUND_NUM				10  // 바닥갯수
 #define		ENDING_X				9500
-#define		OB_CNT					350
+#define		OB_CNT					320
 
 enum { MAIN_MODE, READY_MODE, PLAY_MODE, PAUSE_MODE, GAME_OVER, ENDING_MODE }; // 게임상태
 enum { DOWN_VIEW, FRONT_VIEW }; //카메라 시점

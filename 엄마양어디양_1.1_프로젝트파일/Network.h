@@ -13,7 +13,7 @@ class CNetwork
 public:
 	int m_nPlayerCount;
 	CPlayer m_Players[MAX_PLAYER_CNT];
-	Object **m_ppObstacles;
+	vector<Object*> m_vpMovingObject;
 
 	CNetwork();
 	~CNetwork();
@@ -28,7 +28,6 @@ public:
 	void keyDown(int);
 	void keyUp(int);
 	void getReady();
-	void keySync();
 	void finishEnding();
 
 	void initGameMode(int *piGameMode) {

@@ -43,10 +43,11 @@ class CNetwork
 	mutex							m_lock;
 	// 게임관련
 	Ground* ground[GROUND_NUM];
-	Object* obstacles[400];
+	Object* obstacles[OB_CNT];
 	MotherSheep* mother_sheep;
 	int ob_num = 0;
 	int Game_Mode = MAIN_MODE;
+	vector<Object*> m_vpMovingObject;
 
 public:
 

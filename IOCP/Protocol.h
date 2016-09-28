@@ -3,11 +3,12 @@
 
 //////////////////////////////////////////////////////////////////////////////////
 
-#define		MAX_PACKET_SIZE			128
+#define		MAX_PACKET_SIZE			2048
 #define		SERVER_PORT				9000
-#define		SERVERADDR				"192.168.183.192"
+#define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
 #define		MAX_PLAYER_CNT			2
+#define		MOVING_OB_CNT			127
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -21,21 +22,20 @@
 
 //////////////////////////////////////////////////////////////////////////////////
 
-// 단위는 밀리세컨드, FPS 62.5
-#define FIXED_FRAME_TIME	16   // 최저프레임시간
-#define MILISEC_PER_SYNC	35	// 한 싱크당 시간 
+// 단위는 밀리세컨드, FPS 60
+#define FIXED_FRAME_TIME	17		// 최저프레임시간
+#define MILISEC_PER_SYNC	100		// 한 싱크당 시간 
 
 #pragma pack(push, 1)																				 
 //////////////////////////////////////////////////////////////////////////////////
 
 struct POINT3D {
-	BYTE	ID;
 	FLOAT	x, y, z;
 };
 
 struct HEADER
 {
-	BYTE			ucSize;
+	SHORT			ucSize;
 	BYTE			byPacketID;
 };
 
@@ -61,7 +61,9 @@ struct SC_KEY {
 
 struct SC_SYNC {
 	HEADER header;
-	POINT3D positions[MAX_PLAYER_CNT];
+	BYTE	sheep_ID[MAX_PLAYER_CNT];
+	POINT3D sheep_pos[MAX_PLAYER_CNT];
+	POINT3D object_pos[MOVING_OB_CNT];
 };
 
 //////////////////////////////////////////////////////////////////////////////////
