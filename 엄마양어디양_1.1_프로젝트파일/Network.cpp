@@ -218,7 +218,7 @@ void CNetwork::packetUnpacker()
 	{
 		SC_KEY keyDown;
 		memcpy(&keyDown, m_saveBuf, sizeof(SC_KEY));
-		for (int i = 0; i < m_nPlayerCount; ++i) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_Players[i].m_nID == keyDown.ID) {
 				m_Players[i].m_pSheep->special_key(keyDown.key,m_ppObstacles);
 				m_Players[i].m_pSheep->pCamera->keyboard(keyDown.key);
@@ -231,13 +231,32 @@ void CNetwork::packetUnpacker()
 	{
 		SC_KEY keyUp;
 		memcpy(&keyUp, m_saveBuf, sizeof(SC_KEY));
-		for (int i = 0; i < m_nPlayerCount; ++i) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_Players[i].m_nID == keyUp.ID) {
 				m_Players[i].m_pSheep->special_key_up(keyUp.key);
 				break;
 			}
 		}
 		break;
+	}
+	case PAK_SYNC:
+	{
+		SC_SYNC sync;
+		memcpy(&sync, m_saveBuf, sizeof(SC_SYNC));
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			for (int j = 0; j < MAX_PLAYER_CNT; ++i) {
+				if (m_Players[i].m_nID == sync.positions[j].ID) {
+					m_Players[i].m_pSheep->x = sync.positions[j].x;
+					m_Players[i].m_pSheep->y = sync.positions[j].y;
+					m_Players[i].m_pSheep->z = sync.positions[j].z;
+					m_Players[i].m_pSheep->pCamera->x = sync.positions[j].x;
+					m_Players[i].m_pSheep->pCamera->y = sync.positions[j].y+100;
+					break;
+				}
+			}
+		}
+		break;
+
 	}
 	default:
 		cout << "패킷 ID오류:" <<m_saveBuf[1]<< endl;

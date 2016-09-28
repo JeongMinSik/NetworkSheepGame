@@ -65,18 +65,20 @@ public:
 	bool acceptThread();
 	void workerThread();
 
+	void CreateWorld();
+	void Timer();
 	//패킷 처리 함수
 	bool packetProcess(CHAR*, int);
+	void transmitProcess(void * buf, int id);
 	bool Login(int id);
 	bool Logout(int id);
+	
+	//보내는 함수
 	bool Ready(int id); 
 	bool Finish(int id);
 	bool Start();
 	bool Key(int id, void *buf);
-	bool syncData(void *buf, int id);
-	void transmitProcess(void * buf, int id);
-	void CreateWorld();
-	void Timer();
+	bool Sync();
 
 	//아이피주소얻기
 	void printHostInfo();

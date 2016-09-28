@@ -75,6 +75,7 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 	max_invicible_time = 2000;
 	cur_invicible_time = 0;
 	stading_index = -1;
+	iGameMode = PLAY_MODE;
 	for (int i = 0; i < 8; ++i)
 		state[i] = false;
 }

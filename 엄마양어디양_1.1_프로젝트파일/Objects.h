@@ -8,7 +8,7 @@ struct SoundPackage {
 };
 
 struct Camera {
-	float x, y, z;
+	float x, y;
 	int canvas_size;
 	float view_radius;
 	bool view_point;

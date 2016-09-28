@@ -7,7 +7,7 @@
 #define		SERVER_PORT				9000
 #define		SERVERADDR				"127.0.0.1"
 #define		MAX_ID_CNT				10
-#define		MAX_PLAYER_CNT			2
+#define		MAX_PLAYER_CNT			1
 
 #define		PAK_LOGIN				0
 #define		PAK_REG					1
@@ -15,8 +15,9 @@
 #define		PAK_KEY_UP				3
 #define		PAK_KEY_DOWN			4
 #define		PAK_READY				5
-#define		PAK_START				6		
+#define		PAK_START				6	
 #define		PAK_ENDING				7
+#define		PAK_SYNC				8
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -27,6 +28,11 @@
 
 #pragma pack(push, 1)																				 
 //////////////////////////////////////////////////////////////////////////////////
+
+struct POINT3D {
+	BYTE	ID;
+	FLOAT	x, y, z;
+};
 
 struct HEADER
 {
@@ -52,6 +58,11 @@ struct SC_KEY {
 	HEADER header;
 	BYTE key;
 	BYTE ID;
+};
+
+struct SC_SYNC {
+	HEADER header;
+	POINT3D positions[MAX_PLAYER_CNT];
 };
 
 //////////////////////////////////////////////////////////////////////////////////

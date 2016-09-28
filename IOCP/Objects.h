@@ -2,7 +2,7 @@
 #include "stdafx.h"
 
 struct Camera {
-	float x, y, z;
+	float x, y;
 	int canvas_size;
 	float view_radius;
 	bool view_point;
@@ -19,7 +19,6 @@ struct Ground {
 	int back_height;
 	Ground(float x, float y, float z);
 	~Ground();
-	void draw();
 };
 
 struct Sheep;
