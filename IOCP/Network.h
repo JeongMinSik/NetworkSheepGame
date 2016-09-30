@@ -67,6 +67,7 @@ public:
 	void workerThread();
 
 	void CreateWorld();
+	void DestroyWorld();
 	void Timer();
 	//패킷 처리 함수
 	bool packetProcess(CHAR*, int);
@@ -80,6 +81,7 @@ public:
 	bool Start();
 	bool Key(int id, void *buf);
 	bool Sync();
+	bool Hurt(int id);
 
 	//아이피주소얻기
 	void printHostInfo();

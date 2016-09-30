@@ -71,11 +71,12 @@ Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 
 	x_additional_speed = y_additional_speed = z_additional_speed = 0;
 	last_view = 0;
 	life = 3;
-	is_invincible = is_under = is_in_hay = false;
+	is_invincible = is_under = isHurted = is_in_hay = false;
 	max_invicible_time = 2000;
 	cur_invicible_time = 0;
 	stading_index = -1;
 	iGameMode = PLAY_MODE;
+
 	for (int i = 0; i < 8; ++i)
 		state[i] = false;
 }
@@ -84,11 +85,11 @@ Sheep::~Sheep() {
 }
 void Sheep::get_hurt()
 {
+	isHurted = true;
 	is_invincible = true;
 	--life;
-	if (life < 1) {
+	if (life <= 0) {
 		iGameMode = GAME_OVER;
-
 	}
 }
 void Sheep::dead_update(float frameTime)
@@ -110,6 +111,8 @@ void Sheep::dead_update(float frameTime)
 }
 void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 {
+	bool isHurted = false;
+
 	//¿£µù
 	if (iGameMode != ENDING_MODE && x > ENDING_X){
 		iGameMode = ENDING_MODE;

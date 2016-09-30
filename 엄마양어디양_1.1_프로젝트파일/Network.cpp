@@ -44,7 +44,7 @@ void CNetwork::connectServer()
 	cout << "아이피주소입력(xxx.xxx.xxx.xxx):";
 	cin >> strServerAddr;
 
-	if (strServerAddr[0] = '0') {
+	if (strServerAddr[0] == '0') {
 		strcpy(strServerAddr, "127.0.0.1");
 	}
 
@@ -62,7 +62,7 @@ void CNetwork::connectServer()
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_addr.s_addr = inet_addr(SERVERADDR);
+	serveraddr.sin_addr.s_addr = inet_addr(strServerAddr);
 	serveraddr.sin_port = htons(SERVER_PORT);
 	retval = connect(m_socket, (SOCKADDR *)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
@@ -114,7 +114,8 @@ void CNetwork::recvThreadFunc()
 {
 	char recvBuf[MAX_PACKET_SIZE] = { 0 };
 	int retval;
-
+	int iCurrPacketSize = 0;
+	int iStoredPacketSize = 0;
 	while (1) {
 
 		// 데이터 받기
@@ -125,46 +126,38 @@ void CNetwork::recvThreadFunc()
 			err_display("recv()");
 			break;
 		}
-		int packetSize;
-		// 패킷조립
-		while (1) {
 
-			if (m_nLeft == 0 && retval == 0) {
-				break;
+		char *pRecvBuf = recvBuf;
+		while (0 < retval) {
+
+			//현재 처리하는 패킷이 없을 경우 recvBuf의 첫번째 바이트를 사이즈로 설정
+			if (0 == iCurrPacketSize && retval >= sizeof(HEADER)) {
+				iCurrPacketSize = ((HEADER*)pRecvBuf)->ucSize;
 			}
-			else if (sizeof(HEADER) <= m_nLeft + retval) {
-				if (m_nLeft == 0) {
-					memcpy(m_saveBuf, recvBuf, retval);
-					packetSize = ((HEADER*)m_saveBuf)->ucSize;
-					m_nLeft = retval;
-					retval = 0;
-				}
-				else {
 
-					if (packetSize <= m_nLeft + retval) {
+			// 패킷을 만들기 위해 필요한 남은 사이즈 = 현재 받아야할 패킷사이즈 - 현재까지 저장한 패킷사이즈
+			UINT restSize = iCurrPacketSize - iStoredPacketSize;
 
-						if (packetSize <= m_nLeft) {
-							// 패킷처리
-							packetUnpacker();
-						}
-						else {
-							int lack = packetSize - m_nLeft;
-							memcpy(m_saveBuf + m_nLeft, recvBuf, lack);
-							m_nLeft += lack;
-							memmove(recvBuf, recvBuf + lack, retval - lack);
-							retval -= lack;
-						}
-					}
-					else {
-						memcpy(m_saveBuf + m_nLeft, recvBuf, retval);
-						m_nLeft += retval;
-					}
-				}
+			// io로 받은 데이터의 크기가 패킷을 만들기 위해 필요한 사이즈보다 크거나 같은 경우 패킷을 조립한다.
+			if (restSize <= retval) {
+
+				// 패킷버퍼에 패킷 사이즈를 채워 줄 만큼 
+				memcpy(m_saveBuf + iStoredPacketSize, pRecvBuf, restSize);
+
+				packetUnpacker();
+
+				iCurrPacketSize = iStoredPacketSize = 0;
+
+				pRecvBuf += restSize;
+				retval -= restSize;
 			}
 			else {
-				memcpy(m_saveBuf + m_nLeft, recvBuf, sizeof(retval));
-				m_nLeft += retval;
+				// 처리할 만큼의 사이즈가 아닌 경우 패킷버퍼에 저장 해 놓음
+				memcpy(m_saveBuf + iStoredPacketSize, pRecvBuf, retval);
+
+				iStoredPacketSize += retval;
 				retval = 0;
+				//recvBuf += recvSize;
 			}
 		}
 
@@ -287,14 +280,42 @@ void CNetwork::packetUnpacker()
 		break;
 
 	}
+	case PAK_HURT:
+	{
+		SC_EVENT hurt;
+		memcpy(&hurt, m_saveBuf, sizeof(SC_EVENT));
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (m_Players[i].m_nID == hurt.ID) {
+				m_Players[i].m_pSheep->get_hurt();
+				break;
+			}
+		}
+		break;
+	}
+	case PAK_ENDING:
+	{
+		SC_EVENT ending;
+		memcpy(&ending, m_saveBuf, sizeof(SC_EVENT));
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			if (m_Players[i].m_nID == ending.ID) {
+				m_Players[i].m_pSheep->iGameMode = ENDING_MODE;
+				break;
+			}
+		}
+		if (m_Players[0].m_nID == ending.ID) {
+			printf("당신이 승리했습니다! \n");
+		}
+		else {
+			printf("당신은 패배했습니다! \n");
+			printf("%d번 아이디가 승리했습니다. \n",ending.ID);
+		}
+
+		break;
+	}
 	default:
 		cout << "패킷 ID오류:" << pHeader->byPacketID << endl;
 		break;
 	}
-	m_nLeft -= pHeader->ucSize;
-	printf("패킷이동전\n");
-	memmove(m_saveBuf, m_saveBuf + pHeader->ucSize, m_nLeft);
-	printf("패킹이동\n");
 }
 
 void CNetwork::keyDown(int key)
@@ -340,15 +361,3 @@ void CNetwork::getReady()
 	}
 }
 
-void CNetwork::finishEnding()
-{
-	char sendData[MAX_PACKET_SIZE] = { 0 };
-	HEADER *pData = (HEADER*)sendData;
-	pData->ucSize = sizeof(HEADER);
-	pData->byPacketID = PAK_ENDING;
-
-	int retval = send(m_socket, sendData, sizeof(HEADER), 0);
-	if (retval == SOCKET_ERROR) {
-		err_display("send()");
-	}
-}

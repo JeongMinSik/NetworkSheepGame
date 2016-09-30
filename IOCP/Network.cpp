@@ -324,8 +324,6 @@ bool CNetwork::Logout(int id)
 		--m_nReadyCount;
 	}
 
-	
-
 	// 플레이종료
 	if (m_nID == 0) {
 		isPlaying = false;
@@ -335,7 +333,7 @@ bool CNetwork::Logout(int id)
 			m_vpClientInfo[i] = nullptr;
 		}
 		m_lock.unlock();
-		printf("모든 플레이어가 접속을 종료!");
+		printf("모든 플레이어가 접속을 종료! \n");
 		return true;
 	}
 
@@ -397,6 +395,9 @@ bool CNetwork::Start()
 		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
 	}
 
+	if (ob_num > 0) {
+		DestroyWorld();
+	}
 	CreateWorld();
 
 	isPlaying = true;
@@ -422,13 +423,17 @@ bool CNetwork::Finish(int id) {
 
 	printf("승자는 %d번 클라! \n",id);
 
-	// 월드해제
-	for (auto g : ground)
-		delete g;
-	delete mother_sheep;
-	for (int i = 0; i < ob_num; ++i)
-		delete obstacles[i];
-	ob_num = 0;
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_EVENT *pData = (SC_EVENT*)sendData;
+	pData->header.ucSize = sizeof(SC_EVENT);
+	pData->header.byPacketID = PAK_ENDING;
+	pData->ID = id;
+
+	for (auto &data : m_vpClientInfo) {
+		if (data && data->sock) {
+			transmitProcess(sendData, data->nID);
+		}
+	}
 
 	return true;
 }
@@ -501,6 +506,23 @@ bool CNetwork::Sync()
 	return true;
 }
 
+bool CNetwork::Hurt(int id)
+{
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_EVENT *pData = (SC_EVENT*)sendData;
+	pData->header.ucSize = sizeof(SC_EVENT);
+	pData->header.byPacketID = PAK_HURT;
+	pData->ID = id;
+
+	for (auto &data : m_vpClientInfo) {
+		if (data && data->sock) {
+			transmitProcess(sendData, data->nID);
+		}
+	}
+
+	return true;
+}
+
 void CNetwork::transmitProcess(void *buf, int id)
 {
 	SOCKETINFO *psock = new SOCKETINFO;
@@ -530,6 +552,17 @@ void CNetwork::transmitProcess(void *buf, int id)
 	}
 }
 
+void CNetwork::DestroyWorld() {
+
+	for (auto g : ground)
+		delete g;
+	delete mother_sheep;
+	for (int i = 0; i < ob_num; ++i)
+		delete obstacles[i];
+	m_vpMovingObject.clear();
+	ob_num = 0;
+}
+
 void CNetwork::CreateWorld()
 {
 
@@ -545,6 +578,7 @@ void CNetwork::CreateWorld()
 	ob_num = 0;
 	std::ifstream fin;
 	fin.open("DATA.txt");
+	m_vpMovingObject.reserve(MOVING_OB_CNT);
 	while (!fin.eof())
 	{
 		int object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz;
@@ -653,6 +687,11 @@ void CNetwork::Timer()
 
 				//양 업데이트
 				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+
+					if (sheeps[i]->isHurted) {
+						sheeps[i]->isHurted = false;
+						Hurt(m_vpClientInfo[i]->nID);
+					}
 					switch (sheeps[i]->iGameMode) {
 					case PLAY_MODE:
 						sheeps[i]->update2(ground[0], obstacles, frameTime);
@@ -661,7 +700,7 @@ void CNetwork::Timer()
 						sheeps[i]->dead_update(frameTime);
 						break;
 					case ENDING_MODE:
-						isPlaying = false;
+						Finish(m_vpClientInfo[i]->nID);
 						break;
 					}
 				}

@@ -61,6 +61,7 @@ struct Sheep : public Object {
 	bool ending_finished = false;
 	int iGameMode;
 	int obCnt; // 장애물 수
+	bool isHurted; // 다친 상태를 클라에게 전송해야 한다.
 
 	Sheep(int t, int x, int y, int z, float sp);
 	~Sheep();

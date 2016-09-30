@@ -202,6 +202,7 @@ Sheep::~Sheep() {
 void Sheep::get_hurt()
 {
 	is_invincible = true;
+	cur_invicible_time += max_invicible_time;
 	--life;
 	if (life < 1){
 		iGameMode = GAME_OVER;
@@ -473,14 +474,6 @@ void Sheep::draw()
 }
 void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 {
-	//엔딩
-	if (iGameMode != ENDING_MODE && x > ENDING_X)
-	{
-		iGameMode = ENDING_MODE;
-		FMOD_Channel_Stop(pSound->Channel[GAME_BGM]);
-		FMOD_System_PlaySound(pSound->System, FMOD_CHANNEL_FREE, pSound->Sound[CLEAR_BGM], 0, &pSound->Channel[CLEAR_BGM]);
-	}
-
 	// 바라보는 방향
 	if (state[RIGHT_STATE])
 	{
@@ -514,11 +507,11 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 	//무적상태
 	if (is_invincible) {
 		//(cur_invicible_time % 2) ? pCamera->canvas_size += 0.4*frameTime : pCamera->canvas_size -= 0.4 * frameTime;
-		cur_invicible_time += frameTime;
-		if (cur_invicible_time >= max_invicible_time) {
+		cur_invicible_time -= frameTime;
+		if (cur_invicible_time < 0) {
+			cur_invicible_time = 0;
 			is_invincible = false;
 			is_under = false;
-			cur_invicible_time = 0;
 		}
 	}
 
@@ -1286,11 +1279,7 @@ void Scissors::update1(Sheep** sheeps, float frameTime)
 			state_z = UP_STATE;
 		}
 	}
-	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-		if (sheeps[i]->is_invincible == false && AABB(sheeps[i])) {
-			sheeps[i]->get_hurt();
-		}
-	}
+
 }
 
 
@@ -1362,20 +1351,6 @@ void Pumkin::update1(Sheep** sheeps,float frameTime)
 		else if (state_y == JUMP_DOWN_STATE)
 		{
 			y -= speed*frameTime;
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i])) {
-					sheeps[i]->y -= speed*frameTime;
-					if (sheeps[i]->y < 0)
-					{
-						sheeps[i]->y = 0;
-						if (sheeps[i]->is_invincible == false)
-						{
-							sheeps[i]->is_under = true;
-							sheeps[i]->get_hurt();
-						}
-					}
-				}
-			}
 			if (abs(y - org_y) >= abs(max_y))
 			{
 				state_y = JUMP_UP_STATE;
@@ -1657,18 +1632,7 @@ void Black_Sheep::trace_return(Sheep** sheeps, Object* obstacles[],float frameTi
 			x += vx;
 			z += vz;
 
-			// 양과의 충돌체크
-			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-				if (AABB(sheeps[i]))
-				{
-					x -= vx;
-					z -= vz;
-					if (sheeps[i]->is_invincible == false){
-						sheeps[i]->get_hurt();
-					}
-					return;
-				}
-			}
+
 
 			// 타 장애물들과의 충돌체크
 			for (int i = 0; i < OB_CNT; ++i)
@@ -2068,10 +2032,6 @@ void Ui::draw(Sheep* sheep)
 				else if (ending_screen != 3)
 				{
 					time += FIXED_FRAME_TIME;
-					if (time % 200 == 0)
-					{
-						ending_screen = (ending_screen + 1) % 2;
-					}
 					if (time >= 2000)
 					{
 						ending_screen = 3;

@@ -224,6 +224,7 @@ void SetTextures()
 }
 void CreateWorld()
 {
+	NetworkManager.initGameMode(&Game_Mode);
 	mainSheep = NetworkManager.m_Players[0].m_pSheep;
 	mainCamera = NetworkManager.m_Players[0].m_pSheep->pCamera;
 	iCurCamera = 0;
@@ -288,7 +289,6 @@ void CreateWorld()
 		NetworkManager.m_Players[i].m_pSheep->pCamera->pSelectedCamera = mainCamera;
 	}
 
-	printf("µ¿Àû°´Ã¼°¹¼ö: %d \n", NetworkManager.m_vpMovingObject.size());
 
 	/*
 	°´Ã¼¹è¿­ ÆÄÀÏÃâ·Â
@@ -311,6 +311,7 @@ void DestroyWorld() {
 	for (int i = 0; i < ob_num; ++i)
 		delete obstacles[i];
 	ob_num = 0;
+	NetworkManager.m_vpMovingObject.clear();
 }
 void Program_Exit()
 {
@@ -429,9 +430,15 @@ GLvoid updateScene(int value)
 					break;
 				case ENDING_MODE:
 					if (i == 0) {
-						NetworkManager.finishEnding();
+						ui->ending_screen = WIN;
 					}
-					Game_Mode = ENDING_MODE;
+					else {
+						ui->ending_screen = LOSE;
+
+					}
+					FMOD_Channel_Stop(pSoundPackage->Channel[GAME_BGM]);
+					FMOD_System_PlaySound(pSoundPackage->System, FMOD_CHANNEL_FREE, pSoundPackage->Sound[CLEAR_BGM], 0, &pSoundPackage->Channel[CLEAR_BGM]);
+					Game_Mode = ENDING_MODE;;
 					mainSheep = NetworkManager.m_Players[i].m_pSheep;
 					for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
 						if (i == j) continue;
@@ -473,8 +480,7 @@ GLvoid drawScene(GLvoid)
 		mainCamera->setting();
 
 		//¹Ù´Ú
-		for (auto g : ground)
-		{
+		for (auto g : ground){
 			g->draw();
 		}
 		//¾ç
@@ -501,9 +507,9 @@ GLvoid drawScene(GLvoid)
 
 GLvoid Keyboard(unsigned char key, int x, int y)
 {
-	if (Game_Mode == PLAY_MODE)
-	{
-		if (key == ' ' && mainSheep->iGameMode == PLAY_MODE) {
+	if (Game_Mode == PLAY_MODE){
+
+		if (key == ' ') {
 			if (!mainSheep->killed) {
 				mainCamera->keyboard(key);
 				NetworkManager.keyDown(key);
@@ -514,8 +520,8 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 				Sheep *pCurSheep = NetworkManager.m_Players[iCurCamera].m_pSheep;
 				mainCamera = pCurSheep->pCamera;
 				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-					NetworkManager.m_Players[iCurCamera].m_pSheep->pSelectedSheep = pCurSheep;
-					NetworkManager.m_Players[iCurCamera].m_pSheep->pCamera->pSelectedCamera = mainCamera;
+					NetworkManager.m_Players[i].m_pSheep->pSelectedSheep = pCurSheep;
+					NetworkManager.m_Players[i].m_pSheep->pCamera->pSelectedCamera = mainCamera;
 				}
 			}
 		}
