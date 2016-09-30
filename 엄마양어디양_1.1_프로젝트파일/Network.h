@@ -11,7 +11,6 @@ class CNetwork
 	// 게임관련정보
 	int *m_piGameMode;
 public:
-	int m_nPlayerCount;
 	CPlayer m_Players[MAX_PLAYER_CNT];
 	vector<Object*> m_vpMovingObject;
 

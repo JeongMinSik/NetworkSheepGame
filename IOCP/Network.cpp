@@ -311,6 +311,11 @@ bool CNetwork::Login(int id)
 
 bool CNetwork::Logout(int id)
 {
+	if (!m_vpClientInfo[id]->sock) return true;
+
+	// 소켓을 닫는다.
+	closesocket(m_vpClientInfo[id]->sock);
+	m_vpClientInfo[id]->sock = NULL;
 	m_nID--;
 
 	// 레디상태 해제
@@ -319,9 +324,7 @@ bool CNetwork::Logout(int id)
 		--m_nReadyCount;
 	}
 
-	// 소켓을 닫는다.
-	closesocket(m_vpClientInfo[id]->sock);
-	m_vpClientInfo[id]->sock = NULL;
+	
 
 	// 플레이종료
 	if (m_nID == 0) {
@@ -663,7 +666,6 @@ void CNetwork::Timer()
 					}
 				}
 
-				printf("%f \n", syncTime);
 				accumulator -= FIXED_FRAME_TIME; 
 				syncTime += FIXED_FRAME_TIME;
 				if (MILISEC_PER_SYNC < syncTime) {

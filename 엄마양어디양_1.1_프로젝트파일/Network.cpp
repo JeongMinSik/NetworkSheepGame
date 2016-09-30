@@ -5,7 +5,6 @@ CNetwork::CNetwork()
 {
 	m_socket = NULL;
 	m_pRecvThread = nullptr;
-	m_nPlayerCount = 1;
 	m_piGameMode = nullptr;
 }
 
@@ -41,6 +40,14 @@ void CNetwork::err_display(char * msg)
 
 void CNetwork::connectServer()
 {
+	char strServerAddr[256];
+	cout << "아이피주소입력(xxx.xxx.xxx.xxx):";
+	cin >> strServerAddr;
+
+	if (strServerAddr[0] = '0') {
+		strcpy(strServerAddr, "127.0.0.1");
+	}
+
 	int retval;
 
 	// 윈속 초기화
@@ -196,12 +203,11 @@ void CNetwork::packetUnpacker()
 		if (*m_piGameMode == READY_MODE) {
 			printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
 		}
-		for (int i = 0; i < m_nPlayerCount; ++i) {
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_Players[i].m_nID == logout.ID) {
 				m_Players[i].m_nID = -1;
 			}
 		}
-		--m_nPlayerCount;
 		break;
 	}
 	case PAK_READY:
@@ -218,10 +224,9 @@ void CNetwork::packetUnpacker()
 		memcpy(&start, m_saveBuf, sizeof(SC_START));
 		printf("게임을 시작합니다. \n");
 		*m_piGameMode = PLAY_MODE; 
-		m_nPlayerCount = MAX_PLAYER_CNT;
 
 		// 나 자신(인덱스0)을 제외한 타 플레이어들 아이디번호 저장
-		for (int i = 0, j = 1; i < m_nPlayerCount; ++i) {
+		for (int i = 0, j = 1; i < MAX_PLAYER_CNT; ++i) {
 			if (start.ID_LIST[i] != m_Players[0].m_nID) {
 				m_Players[j++].m_nID = start.ID_LIST[i];
 			}
@@ -260,7 +265,6 @@ void CNetwork::packetUnpacker()
 	}
 	case PAK_SYNC:
 	{
-		printf("싱크조정시작 \n");
 		SC_SYNC sync;
 		memcpy(&sync, m_saveBuf, sizeof(SC_SYNC));
 		// 양들 동기화
@@ -281,8 +285,6 @@ void CNetwork::packetUnpacker()
 			m_vpMovingObject[i]->y = sync.object_pos[i].y;
 			m_vpMovingObject[i]->z = sync.object_pos[i].z;
 		}
-
-		printf("싱크조정끝 \n");
 		break;
 
 	}
