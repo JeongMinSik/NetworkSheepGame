@@ -158,7 +158,6 @@ void CNetwork::recvThreadFunc()
 					else {
 						memcpy(m_saveBuf + m_nLeft, recvBuf, retval);
 						m_nLeft += retval;
-						break;
 					}
 				}
 			}
@@ -293,8 +292,9 @@ void CNetwork::packetUnpacker()
 		break;
 	}
 	m_nLeft -= pHeader->ucSize;
+	printf("패킷이동전\n");
 	memmove(m_saveBuf, m_saveBuf + pHeader->ucSize, m_nLeft);
-
+	printf("패킹이동\n");
 }
 
 void CNetwork::keyDown(int key)

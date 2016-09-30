@@ -52,7 +52,7 @@ Ground::Ground(float x, float y, float z) :x(x), y(y), z(z), width(1000), height
 Ground::~Ground() { }
 
 
-Object::Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*0.03), max_x(m_x), max_y(m_y), max_z(m_z) {}
+Object::Object(int type, float x, float y, float z, float w, float h, float d, float sp = 0, float m_x = 0, float m_y = 0, float m_z = 0) : x(x), y(y), z(z), width(w), height(h), depth(d), type(type), speed(sp*0.02), max_x(m_x), max_y(m_y), max_z(m_z) {}
 bool Object::AABB(const Object* other)
 {
 	if (x + width <= other->x) return false;
