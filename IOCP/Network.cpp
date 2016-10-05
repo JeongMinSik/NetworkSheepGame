@@ -23,6 +23,9 @@ CNetwork::CNetwork()
 	m_nID = 0;
 	m_nReadyCount = 0;
 	isPlaying = false;
+	m_fCurrentTime = clock();
+	m_fAccumulator = 0.0f;
+	m_fSyncTime = 0.0f;
 }
 CNetwork::~CNetwork()
 {
@@ -627,101 +630,76 @@ void CNetwork::CreateWorld()
 
 void CNetwork::Timer()
 {
-	while (1) {
+	if (!isPlaying) return;
+	m_lock.lock();
 
-		if (!isPlaying) continue;
+	float frameTime = clock() - m_fCurrentTime;
+	m_fCurrentTime = clock();
+	m_fAccumulator += frameTime;
+	//printf("FPS:%f \n", 1000.0 / frameTime);
 
-		Sheep** sheeps = new Sheep*[MAX_PLAYER_CNT];
-		float currentTime = clock();
-		float accumulator = 0.0f;
-		float syncTime = 0.0f;
+	while (m_fAccumulator >= FIXED_FRAME_TIME) {
 
-		while (1) {
+		frameTime = FIXED_FRAME_TIME;
 
-			if (!isPlaying) break;
-			m_lock.lock();
+		// 각각의 양에 대한 카메라, 스탠딩 업데이트
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			//카메라 업데이트
+			auto sheep = m_vpClientInfo[i]->pSheep;
+			m_pSheeps[i] = sheep;
 
-			float frameTime = clock() - currentTime;
-			currentTime = clock();
-
-			// 고정프레임
-			if (frameTime < FIXED_FRAME_TIME) {
-				Sleep(FIXED_FRAME_TIME - frameTime);
-				frameTime = FIXED_FRAME_TIME;
+			if (!sheep->killed) {
+				sheep->pCamera->update(frameTime);
 			}
 
-			accumulator += frameTime;
-			//printf("FPS:%f \n", 1000.0 / frameTime);
-
-			while (accumulator >= FIXED_FRAME_TIME) {
-
-				frameTime = FIXED_FRAME_TIME;
-
-				// 각각의 양에 대한 카메라, 스탠딩 업데이트
-				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-					//카메라 업데이트
-					auto sheep = m_vpClientInfo[i]->pSheep;
-					sheeps[i] = sheep;
-
-					if (!sheep->killed) {
-						sheep->pCamera->update(frameTime);
-					}
-
-					//객체 업데이트 (+스탠딩 상태 확인)
-					sheep->stading_index = -1;
-					for (int i = 0; i < ob_num; ++i) {
-						if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
-							sheep->stading_index = i;
-						}
-					}
-				}
-
-				// 장애물 업데이트
-				for (int i = 0; i < ob_num; ++i) {
-					if (obstacles[i]->type == BLACK_SHEEP) {
-						obstacles[i]->update3(sheeps, obstacles, frameTime);
-					}
-					else
-						obstacles[i]->update1(sheeps, frameTime);
-				};
-
-				//양 업데이트
-				for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-
-					if (sheeps[i]->isHurted) {
-						sheeps[i]->isHurted = false;
-						Hurt(m_vpClientInfo[i]->nID);
-					}
-					switch (sheeps[i]->iGameMode) {
-					case PLAY_MODE:
-						sheeps[i]->update2(ground[0], obstacles, frameTime);
-						break;
-					case GAME_OVER:
-						sheeps[i]->dead_update(frameTime);
-						break;
-					case ENDING_MODE:
-						Finish(m_vpClientInfo[i]->nID);
-						break;
-					}
-				}
-
-				accumulator -= FIXED_FRAME_TIME; 
-				syncTime += FIXED_FRAME_TIME;
-				if (MILISEC_PER_SYNC < syncTime) {
-					syncTime -= MILISEC_PER_SYNC;
-					// 변화한 위치값 전송
-					//printf("싱크전송을 시작합니다.");
-					Sync();
+			//객체 업데이트 (+스탠딩 상태 확인)
+			sheep->stading_index = -1;
+			for (int i = 0; i < ob_num; ++i) {
+				if (sheep->stading_index == -1 && obstacles[i]->is_standing(sheep)) {
+					sheep->stading_index = i;
 				}
 			}
-			
-			
-
-			m_lock.unlock();
 		}
 
-		delete[] sheeps;
+		// 장애물 업데이트
+		for (int i = 0; i < ob_num; ++i) {
+			if (obstacles[i]->type == BLACK_SHEEP) {
+				obstacles[i]->update3(m_pSheeps, obstacles, frameTime);
+			}
+			else
+				obstacles[i]->update1(m_pSheeps, frameTime);
+		};
+
+		//양 업데이트
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+
+			if (m_pSheeps[i]->isHurted) {
+				m_pSheeps[i]->isHurted = false;
+				Hurt(m_vpClientInfo[i]->nID);
+			}
+			switch (m_pSheeps[i]->iGameMode) {
+			case PLAY_MODE:
+				m_pSheeps[i]->update2(ground[0], obstacles, frameTime);
+				break;
+			case GAME_OVER:
+				m_pSheeps[i]->dead_update(frameTime);
+				break;
+			case ENDING_MODE:
+				Finish(m_vpClientInfo[i]->nID);
+				break;
+			}
+		}
+
+		m_fAccumulator -= FIXED_FRAME_TIME;
+		m_fSyncTime += FIXED_FRAME_TIME;
+		if (MILISEC_PER_SYNC < m_fSyncTime) {
+			m_fSyncTime -= MILISEC_PER_SYNC;
+			Sync();
+		}
 	}
+
+	m_lock.unlock();
+
 }
 
 

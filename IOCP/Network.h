@@ -48,6 +48,10 @@ class CNetwork
 	int ob_num = 0;
 	int Game_Mode = MAIN_MODE;
 	vector<Object*> m_vpMovingObject;
+	Sheep* m_pSheeps[MAX_PLAYER_CNT];
+	float m_fCurrentTime;
+	float m_fAccumulator;
+	float m_fSyncTime;
 
 public:
 
