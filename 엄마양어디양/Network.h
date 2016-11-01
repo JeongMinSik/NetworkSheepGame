@@ -20,10 +20,10 @@ public:
 	void err_quit(char *);
 	void err_display(char *);
 
-	void connectServer();
+	void connectServer();//
 	void endServer();
-	void recvThreadFunc();
-	void packetUnpacker();
+	void recvThreadFunc();//
+	void packetProcess();//
 	void keyDown(int);
 	void keyUp(int);
 	void getReady();

@@ -5,7 +5,7 @@ CNetwork gNetwork;
 
 void CALLBACK Loop(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR)
 {
-	gNetwork.Timer();
+	gNetwork.updateServer();
 }
 
 int main()
@@ -17,7 +17,6 @@ int main()
 
 	TIMECAPS caps;
 	timeGetDevCaps(&caps, sizeof(caps));
-
 	timeSetEvent(FIXED_FRAME_TIME, caps.wPeriodMin, Loop, NULL, TIME_PERIODIC);
 
 	//서버를 종료한다

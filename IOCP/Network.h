@@ -38,7 +38,7 @@ class CNetwork
 	HANDLE							m_hIOCP;
 	UINT							m_nID;
 	UINT							m_nReadyCount;
-	bool							isPlaying;
+	bool							m_isPlaying;
 
 	mutex							m_lock;
 	// 게임관련
@@ -63,7 +63,8 @@ public:
 	void err_display(char *msg);
 
 	void initNetwork();
-	void startServer();
+	void startServer(); 
+	void updateServer();
 	void endServer();
 
 	//스레드 함수
@@ -72,7 +73,7 @@ public:
 
 	void CreateWorld();
 	void DestroyWorld();
-	void Timer();
+	
 	//패킷 처리 함수
 	bool packetProcess(CHAR*, int);
 	void transmitProcess(void * buf, int id);

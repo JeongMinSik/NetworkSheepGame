@@ -5,7 +5,7 @@
 
 #define		MAX_PACKET_SIZE			2048
 #define		SERVER_PORT				9000
-#define		MAX_ID_CNT				10
+#define		MAX_ID_CNT				2
 #define		MAX_PLAYER_CNT			2
 #define		MOVING_OB_CNT			127
 
@@ -27,7 +27,6 @@
 #define MILISEC_PER_SYNC	100		// 한 싱크당 시간 
 
 #pragma pack(push, 1)																				 
-//////////////////////////////////////////////////////////////////////////////////
 
 struct POINT3D {
 	FLOAT	x, y, z;
@@ -35,11 +34,9 @@ struct POINT3D {
 
 struct HEADER
 {
-	SHORT			ucSize;
-	BYTE			byPacketID;
+	SHORT			packetSize;
+	BYTE			packetID;
 };
-
-//////////////////////////////////////////////////////////////////////////////////
 
 struct SC_LOG_INOUT {
 	HEADER header;

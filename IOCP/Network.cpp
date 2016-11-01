@@ -22,7 +22,7 @@ CNetwork::CNetwork()
 	m_hIOCP = NULL;
 	m_nID = 0;
 	m_nReadyCount = 0;
-	isPlaying = false;
+	m_isPlaying = false;
 	m_fCurrentTime = clock();
 	m_fAccumulator = 0.0f;
 	m_fSyncTime = 0.0f;
@@ -67,9 +67,11 @@ void CNetwork::startServer()
 }
 void CNetwork::endServer()
 {
+	printf("1");
 	for (auto &data : m_vpThreadlist){
 		data->join();
 	}
+	printf("2");
 	WSACleanup();
 
 	cout << "endServer()" << endl;
@@ -134,7 +136,7 @@ bool CNetwork::acceptThread()
 
 		// 접속차단
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
-		if (isPlaying || m_nID >= MAX_PLAYER_CNT) {
+		if (m_isPlaying || m_nID >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
 			cout << "새로운 클라의 접속을 차단했습니다." << endl;
 			continue;
@@ -205,7 +207,7 @@ void CNetwork::workerThread()
 
 				//현재 처리하는 패킷이 없을 경우 recvBuf의 첫번째 바이트를 사이즈로 설정
 				if (0 == sockInfo->iCurrPacketSize){
-					sockInfo->iCurrPacketSize = pHeader->ucSize;
+					sockInfo->iCurrPacketSize = pHeader->packetSize;
 				}
 
 				// 패킷을 만들기 위해 필요한 남은 사이즈 = 현재 받아야할 패킷사이즈 - 현재까지 저장한 패킷사이즈
@@ -264,7 +266,7 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	bool issuccess = true;
 
 	HEADER *pHeader = (HEADER*)buf;
-	switch (pHeader->byPacketID)
+	switch (pHeader->packetID)
 	{
 	case PAK_LOGIN:
 		issuccess = Login(id);
@@ -289,8 +291,8 @@ bool CNetwork::Login(int id)
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)(sendData);
-	pData->header.ucSize = sizeof(SC_LOG_INOUT);
-	pData->header.byPacketID = PAK_LOGIN;
+	pData->header.packetSize = sizeof(SC_LOG_INOUT);
+	pData->header.packetID = PAK_LOGIN;
 	pData->ID = id;
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
@@ -299,7 +301,7 @@ bool CNetwork::Login(int id)
 	transmitProcess(sendData, id);
 
 	// 다른 플레이어에게 접속 사실을 알림
-	pData->header.byPacketID = PAK_REG;
+	pData->header.packetID = PAK_REG;
 	for (auto client : m_vpClientInfo) {
 		if (client && client->nID != id) {
 			transmitProcess(sendData, client->nID);
@@ -329,7 +331,7 @@ bool CNetwork::Logout(int id)
 
 	// 플레이종료
 	if (m_nID == 0) {
-		isPlaying = false;
+		m_isPlaying = false;
 		m_lock.lock();
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			delete m_vpClientInfo[i];
@@ -343,8 +345,8 @@ bool CNetwork::Logout(int id)
 	// 플레이어들에게 접속종료 사실을 알린다.
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
-	pData->header.ucSize = sizeof(SC_LOG_INOUT);
-	pData->header.byPacketID = PAK_RMV;
+	pData->header.packetSize = sizeof(SC_LOG_INOUT);
+	pData->header.packetID = PAK_RMV;
 	pData->ID = id;
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
@@ -372,8 +374,8 @@ bool CNetwork::Ready(int id)
 
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
-	pData->header.ucSize = sizeof(SC_LOG_INOUT);
-	pData->header.byPacketID = PAK_READY;
+	pData->header.packetSize = sizeof(SC_LOG_INOUT);
+	pData->header.packetID = PAK_READY;
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
 
@@ -392,8 +394,8 @@ bool CNetwork::Start()
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_START *pData = (SC_START*)sendData;
-	pData->header.ucSize = sizeof(SC_START);
-	pData->header.byPacketID = PAK_START;
+	pData->header.packetSize = sizeof(SC_START);
+	pData->header.packetID = PAK_START;
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i){
 		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
 	}
@@ -403,7 +405,7 @@ bool CNetwork::Start()
 	}
 	CreateWorld();
 
-	isPlaying = true;
+	m_isPlaying = true;
 	for (auto &data : m_vpClientInfo) {
 		if (data && data->sock) {
 			transmitProcess(sendData, data->nID);
@@ -422,14 +424,14 @@ bool CNetwork::Finish(int id) {
 		}
 	}
 	m_nReadyCount = 0;
-	isPlaying = false;
+	m_isPlaying = false;
 
 	printf("승자는 %d번 클라! \n",id);
 
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_EVENT *pData = (SC_EVENT*)sendData;
-	pData->header.ucSize = sizeof(SC_EVENT);
-	pData->header.byPacketID = PAK_ENDING;
+	pData->header.packetSize = sizeof(SC_EVENT);
+	pData->header.packetID = PAK_ENDING;
 	pData->ID = id;
 
 	for (auto &data : m_vpClientInfo) {
@@ -446,10 +448,10 @@ bool CNetwork::Key(int id, void *buf) {
 	CS_KEY *pKey = (CS_KEY*)((CHAR*)buf);
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_KEY *pData = (SC_KEY*)sendData;
-	pData->header.ucSize = sizeof(SC_KEY);
+	pData->header.packetSize = sizeof(SC_KEY);
 	pData->ID = id;
 	pData->key = pKey->key;
-	pData->header.byPacketID = pKey->header.byPacketID;
+	pData->header.packetID = pKey->header.packetID;
 
 	for (auto &data : m_vpClientInfo) {
 		if (data && data->sock) {
@@ -458,7 +460,7 @@ bool CNetwork::Key(int id, void *buf) {
 		}
 	}
 
-	if (pData->header.byPacketID == PAK_KEY_DOWN) {
+	if (pData->header.packetID == PAK_KEY_DOWN) {
 		printf("%d번클라가 %d키를 Down! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
@@ -468,7 +470,7 @@ bool CNetwork::Key(int id, void *buf) {
 			}
 		}
 	}
-	else if (pData->header.byPacketID == PAK_KEY_UP) {
+	else if (pData->header.packetID == PAK_KEY_UP) {
 		printf("%d번클라가 %d키를 Up! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
@@ -485,8 +487,8 @@ bool CNetwork::Sync()
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_SYNC *pData = (SC_SYNC*)sendData;
-	pData->header.ucSize = sizeof(SC_SYNC);
-	pData->header.byPacketID = PAK_SYNC;
+	pData->header.packetSize = sizeof(SC_SYNC);
+	pData->header.packetID = PAK_SYNC;
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 		pData->sheep_ID[i] = m_vpClientInfo[i]->nID;
@@ -513,8 +515,8 @@ bool CNetwork::Hurt(int id)
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_EVENT *pData = (SC_EVENT*)sendData;
-	pData->header.ucSize = sizeof(SC_EVENT);
-	pData->header.byPacketID = PAK_HURT;
+	pData->header.packetSize = sizeof(SC_EVENT);
+	pData->header.packetID = PAK_HURT;
 	pData->ID = id;
 
 	for (auto &data : m_vpClientInfo) {
@@ -529,7 +531,7 @@ bool CNetwork::Hurt(int id)
 void CNetwork::transmitProcess(void *buf, int id)
 {
 	SOCKETINFO *psock = new SOCKETINFO;
-	auto paksize = ((HEADER*)buf)->ucSize;
+	auto paksize = ((HEADER*)buf)->packetSize;
 
 	memcpy(psock->IOBuf, buf, paksize);
 	psock->optype = OP_TYPE::OP_SEND;
@@ -628,9 +630,9 @@ void CNetwork::CreateWorld()
 
 }
 
-void CNetwork::Timer()
+void CNetwork::updateServer()
 {
-	if (!isPlaying) return;
+	if (!m_isPlaying) return;
 	m_lock.lock();
 
 	float frameTime = clock() - m_fCurrentTime;

@@ -144,7 +144,7 @@ void CNetwork::recvThreadFunc()
 				// 패킷버퍼에 패킷 사이즈를 채워 줄 만큼 
 				memcpy(m_saveBuf + iStoredPacketSize, pRecvBuf, restSize);
 
-				packetUnpacker();
+				packetProcess();
 
 				iCurrPacketSize = iStoredPacketSize = 0;
 
@@ -164,7 +164,7 @@ void CNetwork::recvThreadFunc()
 	}
 }
 
-void CNetwork::packetUnpacker()
+void CNetwork::packetProcess()
 {
 	HEADER *pHeader = (HEADER*)m_saveBuf;
 	switch (pHeader->byPacketID)
