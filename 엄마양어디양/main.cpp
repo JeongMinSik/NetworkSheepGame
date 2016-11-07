@@ -1,7 +1,17 @@
-#include "Network.h"
 #include "stdafx.h"
+#include "Network.h"
 #include "Objects.h"
-
+#include "Ground.h"
+#include "Camera.h"
+#include "Sheep.h"
+#include "SoundPackage.h"
+#include "UI.h"
+#include "Box.h"
+#include "Black_Sheep.h"
+#include "MotherSheep.h"
+#include "Pumkin.h"
+#include "Hay.h"
+#include "Scissors.h"
 
 // 함수선언
 GLvoid updateScene(int);
@@ -599,7 +609,8 @@ GLubyte *LoadDIBitmap(const char *filename, BITMAPINFO **info)
 	int bitsize, infosize;
 	BITMAPFILEHEADER header;
 	// 바이너리 읽기 모드로 파일을 연다
-	if ((fp = fopen(filename, "rb")) == NULL)
+	fopen_s( &fp, filename, "rb" );
+	if ( fp == NULL)
 		return NULL;
 	// 비트맵 파일 헤더를 읽는다.
 	if (fread(&header, sizeof(BITMAPFILEHEADER), 1, fp) < 1) {

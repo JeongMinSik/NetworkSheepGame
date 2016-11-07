@@ -1,5 +1,9 @@
-#include "Network.h"
 #include "stdafx.h"
+#include "Network.h"
+#include "Objects.h"
+#include "SoundPackage.h"
+#include "Camera.h"
+#include "Sheep.h"
 
 CNetwork::CNetwork()
 {
@@ -45,7 +49,7 @@ void CNetwork::connectServer()
 	cin >> strServerAddr;
 
 	if (strServerAddr[0] == '0') {
-		strcpy(strServerAddr, "127.0.0.1");
+		strcpy_s( strServerAddr, sizeof( strServerAddr ), "127.0.0.1");
 	}
 
 	int retval;
@@ -73,8 +77,8 @@ void CNetwork::connectServer()
 
 	char sendData[MAX_PACKET_SIZE] = { 0 };
 	HEADER *pData = (HEADER*)sendData;
-	pData->ucSize = sizeof(HEADER);
-	pData->byPacketID = PAK_LOGIN;
+	pData->packetSize = sizeof(HEADER);
+	pData->packetID = PAK_LOGIN;
 
 	retval = send(m_socket, sendData, sizeof(HEADER), 0);
 	if (retval == SOCKET_ERROR) {
@@ -116,33 +120,43 @@ void CNetwork::recvThreadFunc()
 	int retval;
 	int iCurrPacketSize = 0;
 	int iStoredPacketSize = 0;
-	while (1) {
+	while( 1 ) {
 
 		// 데이터 받기
-		ZeroMemory(recvBuf, sizeof(recvBuf));
-		retval = recv(m_socket, recvBuf, sizeof(recvBuf), 0);
+		ZeroMemory( recvBuf, sizeof( recvBuf ) );
+		retval = recv( m_socket, recvBuf, sizeof( recvBuf ), 0 );
 
-		if (retval == SOCKET_ERROR) {
-			err_display("recv()");
+		if( retval == SOCKET_ERROR ) {
+			err_display( "recv()" );
 			break;
 		}
 
 		char *pRecvBuf = recvBuf;
-		while (0 < retval) {
 
-			//현재 처리하는 패킷이 없을 경우 recvBuf의 첫번째 바이트를 사이즈로 설정
-			if (0 == iCurrPacketSize && retval >= sizeof(HEADER)) {
-				iCurrPacketSize = ((HEADER*)pRecvBuf)->ucSize;
+		while( 0 < retval ) {
+
+			if( 0 == iCurrPacketSize ) {
+				if( retval + iStoredPacketSize >= sizeof( HEADER ) ) {
+					int restHeaderSize = sizeof( HEADER ) - iStoredPacketSize;
+					memcpy( m_saveBuf + iStoredPacketSize, pRecvBuf, restHeaderSize );
+					pRecvBuf += restHeaderSize;
+					iStoredPacketSize += restHeaderSize;
+					retval -= restHeaderSize;
+					iCurrPacketSize = ( ( HEADER* )m_saveBuf )->packetSize;
+				}
+				else {
+					memcpy( m_saveBuf + iStoredPacketSize, pRecvBuf, retval );
+					iStoredPacketSize += retval;
+					retval = 0;
+					break;
+				}
 			}
 
-			// 패킷을 만들기 위해 필요한 남은 사이즈 = 현재 받아야할 패킷사이즈 - 현재까지 저장한 패킷사이즈
-			UINT restSize = iCurrPacketSize - iStoredPacketSize;
+			int restSize = iCurrPacketSize - iStoredPacketSize;
 
-			// io로 받은 데이터의 크기가 패킷을 만들기 위해 필요한 사이즈보다 크거나 같은 경우 패킷을 조립한다.
-			if (restSize <= retval) {
+			if( restSize <= retval ) {
 
-				// 패킷버퍼에 패킷 사이즈를 채워 줄 만큼 
-				memcpy(m_saveBuf + iStoredPacketSize, pRecvBuf, restSize);
+				memcpy( m_saveBuf + iStoredPacketSize, pRecvBuf, restSize );
 
 				packetProcess();
 
@@ -152,22 +166,20 @@ void CNetwork::recvThreadFunc()
 				retval -= restSize;
 			}
 			else {
-				// 처리할 만큼의 사이즈가 아닌 경우 패킷버퍼에 저장 해 놓음
-				memcpy(m_saveBuf + iStoredPacketSize, pRecvBuf, retval);
+				memcpy( m_saveBuf + iStoredPacketSize, pRecvBuf, retval );
 
 				iStoredPacketSize += retval;
 				retval = 0;
 				//recvBuf += recvSize;
 			}
 		}
-
 	}
 }
 
 void CNetwork::packetProcess()
 {
 	HEADER *pHeader = (HEADER*)m_saveBuf;
-	switch (pHeader->byPacketID)
+	switch (pHeader->packetID)
 	{
 	case PAK_LOGIN:
 	{
@@ -313,7 +325,7 @@ void CNetwork::packetProcess()
 		break;
 	}
 	default:
-		cout << "패킷 ID오류:" << pHeader->byPacketID << endl;
+		cout << "패킷 ID오류:" << pHeader->packetID << endl;
 		break;
 	}
 }
@@ -322,8 +334,8 @@ void CNetwork::keyDown(int key)
 {
 	char sendData[MAX_PACKET_SIZE] = { 0 };
 	CS_KEY *pData = (CS_KEY*)sendData;
-	pData->header.ucSize = sizeof(CS_KEY);
-	pData->header.byPacketID = PAK_KEY_DOWN;
+	pData->header.packetSize = sizeof(CS_KEY);
+	pData->header.packetID = PAK_KEY_DOWN;
 	pData->key = key;
 
 	int retval = send(m_socket, sendData, sizeof(CS_KEY), 0);
@@ -336,8 +348,8 @@ void CNetwork::keyUp(int key)
 {
 	char sendData[MAX_PACKET_SIZE] = { 0 };
 	CS_KEY *pData = (CS_KEY*)sendData;
-	pData->header.ucSize = sizeof(CS_KEY);
-	pData->header.byPacketID = PAK_KEY_UP;
+	pData->header.packetSize = sizeof(CS_KEY);
+	pData->header.packetID = PAK_KEY_UP;
 	pData->key = key;
 
 	int retval = send(m_socket, sendData, sizeof(CS_KEY), 0);
@@ -352,8 +364,8 @@ void CNetwork::getReady()
 
 	char sendData[MAX_PACKET_SIZE] = { 0 };
 	HEADER *pData = (HEADER*)sendData;
-	pData->ucSize = sizeof(HEADER);
-	pData->byPacketID = PAK_READY;
+	pData->packetSize = sizeof(HEADER);
+	pData->packetID = PAK_READY;
 
 	int retval = send(m_socket, sendData, sizeof(HEADER), 0);
 	if (retval == SOCKET_ERROR) {

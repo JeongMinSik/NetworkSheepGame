@@ -3,7 +3,7 @@
   <Class Name="CNetwork" Collapsed="true">
     <Position X="14.25" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQEACAEGEQAAWQEAgBIQ4AAAAgggAMECoQAEKEgAo=</HashCode>
+      <HashCode>AAEQEACAEGMQAAWQEAgBIQ4AAAAgggAMECoQAEKAgAo=</HashCode>
       <FileName>Network.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -94,7 +94,7 @@
   <Struct Name="HEADER" Collapsed="true">
     <Position X="19.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAACAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Protocol.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -116,13 +116,6 @@
     <Position X="19.5" Y="2.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAQAAAAAgAAAAAAEAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Protocol.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="SC_SYNC" Collapsed="true">
-    <Position X="17.75" Y="3.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>CAAAAgQAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Protocol.h</FileName>
     </TypeIdentifier>
   </Struct>

@@ -147,25 +147,49 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Black_Sheep.cpp" />
+    <ClCompile Include="Box.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="Hay.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MotherSheep.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="Objects.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Pumkin.cpp" />
+    <ClCompile Include="Scissors.cpp" />
+    <ClCompile Include="Sheep.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="UI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Black_Sheep.h" />
+    <ClInclude Include="Box.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Ground.h" />
+    <ClInclude Include="Hay.h" />
+    <ClInclude Include="MotherSheep.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="Objects.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Protocol.h" />
+    <ClInclude Include="Pumkin.h" />
     <ClInclude Include="resource1.h" />
+    <ClInclude Include="Scissors.h" />
+    <ClInclude Include="Sheep.h" />
+    <ClInclude Include="SoundPackage.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="UI.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="엄마양어디양_최종.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="RESOURCE\icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

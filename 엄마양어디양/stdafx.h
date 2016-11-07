@@ -1,6 +1,7 @@
 #pragma once
 #pragma comment(lib,"ws2_32.lib")
 #pragma comment (lib, "fmodex_vc.lib")
+#pragma warning( disable : 4996 )
 
 #include "inc/fmod.hpp"
 #include <WinSock2.h>

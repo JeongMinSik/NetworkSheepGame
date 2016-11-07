@@ -26,6 +26,7 @@ CNetwork::CNetwork()
 	m_fCurrentTime = clock();
 	m_fAccumulator = 0.0f;
 	m_fSyncTime = 0.0f;
+	m_fSyncObjectTime = 0.0f;
 }
 CNetwork::~CNetwork()
 {
@@ -67,11 +68,9 @@ void CNetwork::startServer()
 }
 void CNetwork::endServer()
 {
-	printf("1");
 	for (auto &data : m_vpThreadlist){
 		data->join();
 	}
-	printf("2");
 	WSACleanup();
 
 	cout << "endServer()" << endl;
@@ -96,6 +95,14 @@ bool CNetwork::acceptThread()
 {
 	m_listenSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_listenSock == INVALID_SOCKET) CNetwork::err_quit("WSASocket() error!");
+
+	int nSendSize = 0;
+	int nIntSize = sizeof(int);
+	//getsockopt(m_listenSock, SOL_SOCKET, SO_SNDBUF, (char*)&nSendSize, &nIntSize);
+	//printf("송신 버퍼의 크기: bytes %d \n", nSendSize);
+	nSendSize = 1048576;
+	setsockopt(m_listenSock, SOL_SOCKET, SO_SNDBUF, (char*)&nSendSize, nIntSize);
+	printf("송신 버퍼의 크기: %d bytes \n", nSendSize);
 
 	//주소 bind()
 	sockaddr_in	listenSockAddr;
@@ -242,6 +249,7 @@ void CNetwork::workerThread()
 
 			// 다시 Recv()호출
 			DWORD flags = 0;
+	
 			int retval = WSARecv(sockInfo->sock, &sockInfo->wsabuf, 1, NULL, &flags, (LPOVERLAPPED)sockInfo, NULL);
 			if (retval == SOCKET_ERROR) {
 				if (WSAGetLastError() != ERROR_IO_PENDING) {
@@ -262,12 +270,13 @@ void CNetwork::workerThread()
 
 bool CNetwork::packetProcess(CHAR* buf, int id)
 {
-	//cout << "패킷 처리"<< (int)buf[1] << endl;
+	
 	bool issuccess = true;
 
 	HEADER *pHeader = (HEADER*)buf;
 	switch (pHeader->packetID)
 	{
+		printf("id %d에게 패킷을 받았습니다. 타입:%d \n", id, pHeader->packetID);
 	case PAK_LOGIN:
 		issuccess = Login(id);
 		break;
@@ -283,12 +292,18 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	case PAK_ENDING:
 		issuccess = Finish(id);
 		break;
+	default:
+		issuccess = false;
+		printf("알려지지 않은 패킷ID \n");
+		break;
 	}
+
 	return issuccess;
 }
 
 bool CNetwork::Login(int id)
 {
+
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)(sendData);
 	pData->header.packetSize = sizeof(SC_LOG_INOUT);
@@ -302,9 +317,9 @@ bool CNetwork::Login(int id)
 
 	// 다른 플레이어에게 접속 사실을 알림
 	pData->header.packetID = PAK_REG;
-	for (auto client : m_vpClientInfo) {
-		if (client && client->nID != id) {
-			transmitProcess(sendData, client->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->nID != id) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
@@ -316,9 +331,11 @@ bool CNetwork::Login(int id)
 
 bool CNetwork::Logout(int id)
 {
-	if (!m_vpClientInfo[id]->sock) return true;
+	m_vpClientInfo[id]->socketLock.lock();
+	if (m_vpClientInfo[id]== NULL || m_vpClientInfo[id]->sock == NULL) return true;
 
 	// 소켓을 닫는다.
+	shutdown(m_vpClientInfo[id]->sock, SD_SEND);
 	closesocket(m_vpClientInfo[id]->sock);
 	m_vpClientInfo[id]->sock = NULL;
 	m_nID--;
@@ -329,15 +346,15 @@ bool CNetwork::Logout(int id)
 		--m_nReadyCount;
 	}
 
+	m_vpClientInfo[id]->socketLock.unlock();
+
 	// 플레이종료
 	if (m_nID == 0) {
 		m_isPlaying = false;
-		m_lock.lock();
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			delete m_vpClientInfo[i];
 			m_vpClientInfo[i] = nullptr;
 		}
-		m_lock.unlock();
 		printf("모든 플레이어가 접속을 종료! \n");
 		return true;
 	}
@@ -351,11 +368,12 @@ bool CNetwork::Logout(int id)
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
 
-	for (auto &data : m_vpClientInfo){
-		if (data && data->sock){
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
+
 
 	cout << "[시스템] " << id << "번 클라이언트 접속 종료!" << endl;
 	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
@@ -365,8 +383,13 @@ bool CNetwork::Logout(int id)
 
 bool CNetwork::Ready(int id)
 {
+	m_vpClientInfo[id]->socketLock.lock();
+
 	m_vpClientInfo[id]->isReady = true;
 	++m_nReadyCount;
+
+
+	m_vpClientInfo[id]->socketLock.unlock();
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
 		return CNetwork::Start();
@@ -379,9 +402,9 @@ bool CNetwork::Ready(int id)
 	pData->clientNum = m_nID;
 	pData->readyCount = m_nReadyCount;
 
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
@@ -406,21 +429,21 @@ bool CNetwork::Start()
 	CreateWorld();
 
 	m_isPlaying = true;
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
 	printf("게임 시작! \n");
-
 	return true;
 }
 
 bool CNetwork::Finish(int id) {
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			data->isReady = false;
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			m_vpClientInfo[i]->isReady = false;
 		}
 	}
 	m_nReadyCount = 0;
@@ -434,9 +457,9 @@ bool CNetwork::Finish(int id) {
 	pData->header.packetID = PAK_ENDING;
 	pData->ID = id;
 
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
@@ -453,10 +476,10 @@ bool CNetwork::Key(int id, void *buf) {
 	pData->key = pKey->key;
 	pData->header.packetID = pKey->header.packetID;
 
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			if (data->nID == id) continue;
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			if (m_vpClientInfo[i]->nID == id) continue;
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
@@ -483,6 +506,7 @@ bool CNetwork::Key(int id, void *buf) {
 	return true;
 }
 
+
 bool CNetwork::Sync()
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
@@ -503,11 +527,12 @@ bool CNetwork::Sync()
 		pData->object_pos[i].z = m_vpMovingObject[i]->z;
 	}
 
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
+
 	return true;
 }
 
@@ -519,9 +544,9 @@ bool CNetwork::Hurt(int id)
 	pData->header.packetID = PAK_HURT;
 	pData->ID = id;
 
-	for (auto &data : m_vpClientInfo) {
-		if (data && data->sock) {
-			transmitProcess(sendData, data->nID);
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
 		}
 	}
 
@@ -541,11 +566,15 @@ void CNetwork::transmitProcess(void *buf, int id)
 	psock->wsabuf.len = paksize;
 
 	unsigned long IOsize;
+	m_vpClientInfo[id]->socketLock.lock();
 	SOCKETINFO* sock = m_vpClientInfo[id];
+
 	if (!sock)
 		err_display("Wrong Sock access!!");
 
 	int retval = WSASend(sock->sock, &psock->wsabuf, 1, &IOsize, NULL, &psock->overlapped, NULL);
+
+	m_vpClientInfo[id]->socketLock.unlock();
 
 	if (retval == SOCKET_ERROR){
 		int err_code = WSAGetLastError();
@@ -633,7 +662,6 @@ void CNetwork::CreateWorld()
 void CNetwork::updateServer()
 {
 	if (!m_isPlaying) return;
-	m_lock.lock();
 
 	float frameTime = clock() - m_fCurrentTime;
 	m_fCurrentTime = clock();
@@ -693,6 +721,7 @@ void CNetwork::updateServer()
 		}
 
 		m_fAccumulator -= FIXED_FRAME_TIME;
+
 		m_fSyncTime += FIXED_FRAME_TIME;
 		if (MILISEC_PER_SYNC < m_fSyncTime) {
 			m_fSyncTime -= MILISEC_PER_SYNC;
@@ -700,7 +729,6 @@ void CNetwork::updateServer()
 		}
 	}
 
-	m_lock.unlock();
 
 }
 

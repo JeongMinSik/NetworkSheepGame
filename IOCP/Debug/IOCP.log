@@ -1,0 +1,66 @@
+﻿빌드 시작: 2016-11-04 오후 7:17:01
+     1>2 노드의 "D:\3_2\넷겜플\텀프로젝트\IOCP\IOCP.vcxproj" 프로젝트(Build 대상)입니다.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp Objects.cpp main.cpp
+         Network.cpp
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(26): warning C4244: '=': 'clock_t'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(84): warning C4996: 'gethostbyname': Use getaddrinfo() or GetAddrInfoW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+         c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(2238): note: 'gethostbyname' 선언을 참조하십시오.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(88): warning C4996: 'inet_ntoa': Use inet_ntop() or InetNtop() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+         c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1868): note: 'inet_ntoa' 선언을 참조하십시오.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(96): warning C4996: 'WSASocketA': Use WSASocketW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+         c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(3457): note: 'WSASocketA' 선언을 참조하십시오.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(639): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(642): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(646): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(649): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(653): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(657): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(660): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(671): warning C4244: '인수': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(683): warning C4244: '=': 'clock_t'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\network.cpp(779): warning C4477: 'printf' : format string '%s' requires an argument of type 'char *', but variadic argument 2 has type 'LPVOID'
+         코드를 생성하고 있습니다...
+         컴파일하고 있습니다...
+         main.cpp
+         Objects.cpp
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(55): warning C4244: '초기화 중': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(68): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(101): warning C4244: '+=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(101): warning C4244: '-=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(154): warning C4244: '+=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(171): warning C4244: '=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(224): warning C4244: '-=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(245): warning C4244: '초기화 중': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(370): warning C4244: '초기화 중': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(412): warning C4244: '초기화 중': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(456): warning C4244: '초기화 중': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(459): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(480): warning C4244: '-=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(504): warning C4244: '초기화 중': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(507): warning C4244: '=': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(704): warning C4305: '=': 'double'에서 'float'(으)로 잘립니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(715): warning C4244: '+=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(843): warning C4244: '인수': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(859): warning C4244: '초기화 중': 'int'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(861): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(868): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(883): warning C4244: '=': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(888): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(889): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(931): warning C4244: '+=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(935): warning C4244: '=': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(938): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>d:\3_2\넷겜플\텀프로젝트\iocp\objects.cpp(939): warning C4244: '=': 'float'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+         코드를 생성하고 있습니다...
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\3_2\넷겜플\텀프로젝트\IOCP\Debug\IOCP.exe" /INCREMENTAL /NOLOGO d3d11.lib d3dx11.lib d3dx11d.lib d3dcompiler.lib d3dx9.lib d3dx9d.lib dxerr.lib dxguid.lib dxgi.lib winmm.lib dinput8.lib XInput.lib dsound.lib X3DAudio.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"D:\3_2\넷겜플\텀프로젝트\IOCP\Debug\IOCP.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\3_2\넷겜플\텀프로젝트\IOCP\Debug\IOCP.lib" /MACHINE:X86 Debug\main.obj
+         Debug\Network.obj
+         Debug\Objects.obj
+         Debug\stdafx.obj
+         IOCP.vcxproj -> D:\3_2\넷겜플\텀프로젝트\IOCP\Debug\IOCP.exe
+     1>"D:\3_2\넷겜플\텀프로젝트\IOCP\IOCP.vcxproj" 프로젝트를 빌드했습니다(Build 대상).
+
+빌드했습니다.
+
+경과 시간: 00:00:03.78

@@ -21,6 +21,7 @@ struct SOCKETINFO
 	int	 iCurrPacketSize; 
 	int	 iStoredPacketSize;
 	Sheep *pSheep;
+	mutex socketLock;
 
 	//정보
 	int nID;
@@ -40,7 +41,6 @@ class CNetwork
 	UINT							m_nReadyCount;
 	bool							m_isPlaying;
 
-	mutex							m_lock;
 	// 게임관련
 	Ground* ground[GROUND_NUM];
 	Object* obstacles[OB_CNT];
@@ -52,6 +52,7 @@ class CNetwork
 	float m_fCurrentTime;
 	float m_fAccumulator;
 	float m_fSyncTime;
+	float m_fSyncObjectTime;
 
 public:
 

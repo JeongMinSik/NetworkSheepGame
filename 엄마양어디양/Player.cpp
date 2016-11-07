@@ -1,6 +1,6 @@
 #include "Player.h"
-
-
+#include "Camera.h"
+#include "Sheep.h"
 
 CPlayer::CPlayer()
 {
