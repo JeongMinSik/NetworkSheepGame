@@ -25,7 +25,7 @@ struct SOCKETINFO
 
 	//정보
 	int nID;
-	bool isReady;
+	bool bReady;
 
 	SOCKETINFO();
 	~SOCKETINFO();
@@ -37,9 +37,9 @@ class CNetwork
 	vector<SOCKETINFO*>				m_vpClientInfo;
 	SOCKET							m_listenSock;
 	HANDLE							m_hIOCP;
-	UINT							m_nID;
+	UINT							m_nPlayerCount;
 	UINT							m_nReadyCount;
-	bool							m_isPlaying;
+	bool							m_bPlaying;
 
 	// 게임관련
 	Ground* ground[GROUND_NUM];

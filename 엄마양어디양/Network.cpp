@@ -186,26 +186,27 @@ void CNetwork::packetProcess()
 		SC_LOG_INOUT login;
 		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
 		m_Players[0].m_nID = login.ID;
-		//printf("접속했습니다. 부여받은 아이디는 %d입니다. \n",m_nID);
-		printf("접속했습니다. \n");
 		printf("레디 / 총 접속: ( %d / %d ) \n", login.readyCount, login.clientNum);
+		printf("-> 접속했습니다. 부여받은 아이디는 %d번 입니다. \n", login.ID);
+		printf("-> 준비상태( %d / %d ), 총 접속자: %d명 \n", login.readyCount, MAX_PLAYER_CNT, login.clientNum);
+
 		break;
 	}
 	case PAK_REG:
 	{
 		SC_LOG_INOUT login;
 		memcpy(&login, m_saveBuf, sizeof(SC_LOG_INOUT));
-		printf("%d번 클라가 접속했습니다. \n",login.ID);
-		printf("레디 / 총 접속: ( %d / %d ) \n", login.readyCount, login.clientNum);
+		printf("-> %d번 클라가 접속했습니다. \n", login.ID);
+		printf("-> 준비상태( %d / %d ), 총 접속자: %d명 \n", login.readyCount, MAX_PLAYER_CNT, login.clientNum);
 		break;
 	}
 	case PAK_RMV:
 	{
 		SC_LOG_INOUT logout;
 		memcpy(&logout, m_saveBuf, sizeof(SC_LOG_INOUT));
-		printf("%d번 클라가 로그아웃했습니다. \n", logout.ID);
+		printf("-> %d번 클라가 로그아웃했습니다. \n", logout.ID);
 		if (*m_piGameMode == READY_MODE) {
-			printf("레디 / 총 접속: ( %d / %d ) \n", logout.readyCount, logout.clientNum);
+			printf("-> 준비상태( %d / %d ), 총 접속자: %d명 \n", logout.readyCount, MAX_PLAYER_CNT, logout.clientNum);
 		}
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_Players[i].m_nID == logout.ID) {
@@ -218,8 +219,8 @@ void CNetwork::packetProcess()
 	{
 		SC_LOG_INOUT ready;
 		memcpy(&ready, m_saveBuf, sizeof(SC_LOG_INOUT));
-		printf("%d번 클라 준비완료! \n", ready.ID);
-		printf("레디 / 총 접속: ( %d / %d ) \n", ready.readyCount, ready.clientNum);
+		printf("-> %d번 클라가 준비했습니다. \n", ready.ID);
+		printf("-> 준비상태( %d / %d ), 총 접속자: %d명 \n", ready.readyCount, MAX_PLAYER_CNT, ready.clientNum);
 		break;
 	}
 	case PAK_START:

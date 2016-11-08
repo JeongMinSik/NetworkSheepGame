@@ -9,7 +9,7 @@ SOCKETINFO::SOCKETINFO()
 	sock = NULL;
 	optype = OP_TYPE::OP_RECV;
 	iCurrPacketSize = iStoredPacketSize = 0;
-	isReady = false;
+	bReady = false;
 
 }
 SOCKETINFO::~SOCKETINFO()
@@ -20,9 +20,9 @@ CNetwork::CNetwork()
 {
 	m_listenSock = NULL;
 	m_hIOCP = NULL;
-	m_nID = 0;
+	m_nPlayerCount = 0;
 	m_nReadyCount = 0;
-	m_isPlaying = false;
+	m_bPlaying = false;
 	m_fCurrentTime = clock();
 	m_fAccumulator = 0.0f;
 	m_fSyncTime = 0.0f;
@@ -87,8 +87,6 @@ void CNetwork::printHostInfo() {
 	for (int i = 0; pLocalHostInformation->h_addr_list[i] != NULL; i++){
 		printf("hostent.h_addr_list[%d] = %s\n", i, inet_ntoa(*(struct in_addr*)pLocalHostInformation->h_addr_list[i]));
 	}
-
-
 }
 
 bool CNetwork::acceptThread()
@@ -143,7 +141,7 @@ bool CNetwork::acceptThread()
 
 		// 접속차단
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
-		if (m_isPlaying || m_nID >= MAX_PLAYER_CNT) {
+		if (m_bPlaying || m_nPlayerCount >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
 			cout << "새로운 클라의 접속을 차단했습니다." << endl;
 			continue;
@@ -162,7 +160,7 @@ bool CNetwork::acceptThread()
 			if (m_vpClientInfo[i] == nullptr) {
 				pSocketInfo->nID = i;
 				m_vpClientInfo[i] = pSocketInfo;
-				++m_nID;
+				++m_nPlayerCount;
 				break;
 			}
 		}
@@ -309,7 +307,7 @@ bool CNetwork::Login(int id)
 	pData->header.packetSize = sizeof(SC_LOG_INOUT);
 	pData->header.packetID = PAK_LOGIN;
 	pData->ID = id;
-	pData->clientNum = m_nID;
+	pData->clientNum = m_nPlayerCount;
 	pData->readyCount = m_nReadyCount;
 	
 	// 아이디번호 부여
@@ -323,8 +321,8 @@ bool CNetwork::Login(int id)
 		}
 	}
 
-	cout << "[시스템] " << id << "번 클라이언트 접속!" << endl;
-	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+	printf("-> %d번 클라이언트 접속 \n", id);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
@@ -338,19 +336,19 @@ bool CNetwork::Logout(int id)
 	shutdown(m_vpClientInfo[id]->sock, SD_SEND);
 	closesocket(m_vpClientInfo[id]->sock);
 	m_vpClientInfo[id]->sock = NULL;
-	m_nID--;
+	m_nPlayerCount--;
 
 	// 레디상태 해제
-	if (m_vpClientInfo[id]->isReady) {
-		m_vpClientInfo[id]->isReady = false;
+	if (m_vpClientInfo[id]->bReady) {
+		m_vpClientInfo[id]->bReady = false;
 		--m_nReadyCount;
 	}
 
 	m_vpClientInfo[id]->socketLock.unlock();
 
 	// 플레이종료
-	if (m_nID == 0) {
-		m_isPlaying = false;
+	if (m_nPlayerCount == 0) {
+		m_bPlaying = false;
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			delete m_vpClientInfo[i];
 			m_vpClientInfo[i] = nullptr;
@@ -365,7 +363,7 @@ bool CNetwork::Logout(int id)
 	pData->header.packetSize = sizeof(SC_LOG_INOUT);
 	pData->header.packetID = PAK_RMV;
 	pData->ID = id;
-	pData->clientNum = m_nID;
+	pData->clientNum = m_nPlayerCount;
 	pData->readyCount = m_nReadyCount;
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
@@ -375,23 +373,25 @@ bool CNetwork::Logout(int id)
 	}
 
 
-	cout << "[시스템] " << id << "번 클라이언트 접속 종료!" << endl;
-	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+	printf("-> %d번 클라이언트 종료 \n", id);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
 
 bool CNetwork::Ready(int id)
 {
+	printf("레디함수시작");
 	m_vpClientInfo[id]->socketLock.lock();
 
-	m_vpClientInfo[id]->isReady = true;
+	m_vpClientInfo[id]->bReady = true;
 	++m_nReadyCount;
 
 
 	m_vpClientInfo[id]->socketLock.unlock();
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
+		printf("스타트함수접속전\n");
 		return CNetwork::Start();
 	}
 
@@ -399,7 +399,7 @@ bool CNetwork::Ready(int id)
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
 	pData->header.packetSize = sizeof(SC_LOG_INOUT);
 	pData->header.packetID = PAK_READY;
-	pData->clientNum = m_nID;
+	pData->clientNum = m_nPlayerCount;
 	pData->readyCount = m_nReadyCount;
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
@@ -408,7 +408,8 @@ bool CNetwork::Ready(int id)
 		}
 	}
 
-	printf("레디 / 총 접속: ( %d / %d ) \n", m_nReadyCount, m_nID);
+	printf("-> %d번 클라이언트 준비 \n", id);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
@@ -428,7 +429,7 @@ bool CNetwork::Start()
 	}
 	CreateWorld();
 
-	m_isPlaying = true;
+	m_bPlaying = true;
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
 			transmitProcess(sendData, m_vpClientInfo[i]->nID);
@@ -443,11 +444,11 @@ bool CNetwork::Finish(int id) {
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
-			m_vpClientInfo[i]->isReady = false;
+			m_vpClientInfo[i]->bReady = false;
 		}
 	}
 	m_nReadyCount = 0;
-	m_isPlaying = false;
+	m_bPlaying = false;
 
 	printf("승자는 %d번 클라! \n",id);
 
@@ -661,7 +662,7 @@ void CNetwork::CreateWorld()
 
 void CNetwork::updateServer()
 {
-	if (!m_isPlaying) return;
+	if (!m_bPlaying) return;
 
 	float frameTime = clock() - m_fCurrentTime;
 	m_fCurrentTime = clock();
