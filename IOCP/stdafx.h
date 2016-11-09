@@ -13,7 +13,7 @@
 using namespace std;
 
 #define GLUT_KEY_LEFT			100
-#define GLUT_KEY_UP			101
+#define GLUT_KEY_UP				101
 #define GLUT_KEY_RIGHT			102
 #define GLUT_KEY_DOWN			103
 

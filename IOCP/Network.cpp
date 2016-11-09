@@ -381,19 +381,13 @@ bool CNetwork::Logout(int id)
 
 bool CNetwork::Ready(int id)
 {
-	printf("레디함수시작");
-	m_vpClientInfo[id]->socketLock.lock();
+	printf("레디함수시작\n");
+//	m_vpClientInfo[id]->socketLock.lock();
 
 	m_vpClientInfo[id]->bReady = true;
 	++m_nReadyCount;
 
-
-	m_vpClientInfo[id]->socketLock.unlock();
-
-	if (m_nReadyCount >= MAX_PLAYER_CNT) {
-		printf("스타트함수접속전\n");
-		return CNetwork::Start();
-	}
+//	m_vpClientInfo[id]->socketLock.unlock();
 
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_LOG_INOUT *pData = (SC_LOG_INOUT*)sendData;
@@ -401,6 +395,7 @@ bool CNetwork::Ready(int id)
 	pData->header.packetID = PAK_READY;
 	pData->clientNum = m_nPlayerCount;
 	pData->readyCount = m_nReadyCount;
+	pData->ID = id;
 
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
@@ -411,11 +406,17 @@ bool CNetwork::Ready(int id)
 	printf("-> %d번 클라이언트 준비 \n", id);
 	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
+	if (m_nReadyCount >= MAX_PLAYER_CNT) {
+		printf("스타트함수접속전\n");
+		return CNetwork::Start();
+	}
+
 	return true;
 }
 
 bool CNetwork::Start()
 {
+	printf("1\n");
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_START *pData = (SC_START*)sendData;
 	pData->header.packetSize = sizeof(SC_START);
@@ -424,10 +425,16 @@ bool CNetwork::Start()
 		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
 	}
 
+
+	printf("2\n");
+
 	if (ob_num > 0) {
 		DestroyWorld();
 	}
 	CreateWorld();
+
+
+	printf("3\n");
 
 	m_bPlaying = true;
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
@@ -614,6 +621,9 @@ void CNetwork::CreateWorld()
 	std::ifstream fin;
 	fin.open("DATA.txt");
 	m_vpMovingObject.reserve(MOVING_OB_CNT);
+	if (fin.fail()) {
+		err_display("File Error!");
+	}
 	while (!fin.eof())
 	{
 		int object_type, xx, yy, zz, sspeed, max_xx, max_yy, max_zz;

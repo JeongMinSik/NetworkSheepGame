@@ -144,9 +144,11 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Network.cpp" />
+    <ClCompile Include="Objects.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Network.h" />
+    <ClInclude Include="Objects.h" />
     <ClInclude Include="Protocol.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

@@ -520,11 +520,11 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 	if (Game_Mode == PLAY_MODE){
 
 		if (key == ' ') {
-			if (!mainSheep->killed) {
+			if (mainSheep->iGameMode == PLAY_MODE) {
 				mainCamera->keyboard(key);
 				NetworkManager.keyDown(key);
 			}
-			else {
+			else if (mainSheep->killed){
 				// 카메라 시점 변환
 				iCurCamera = (iCurCamera + 1) % MAX_PLAYER_CNT;
 				Sheep *pCurSheep = NetworkManager.m_Players[iCurCamera].m_pSheep;
