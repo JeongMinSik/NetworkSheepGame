@@ -41,7 +41,6 @@ void CNetwork::err_display(char * msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&lpMsgBuf, 0, NULL);
-	//MessageBox(NULL, (LPCTSTR)lpMsgBuf, (LPCWSTR)msg, MB_ICONERROR);
 	printf("[%s] %s", msg, lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
@@ -132,7 +131,7 @@ void CNetwork::acceptThread()
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
 		if (m_bPlaying || m_nPlayerCount >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
-			printf("새로운 클라이언트의 접속 차단 \n");
+			printf("-> 새로운 클라이언트의 접속 차단 \n\n");
 			continue;
 		}
 
@@ -157,7 +156,7 @@ void CNetwork::acceptThread()
 
 void CNetwork::recvThread(int id)
 {
-	printf("%d번 클라 접속에 따른 리시브스레드생성 \n", id);
+	printf("-> %d번 클라 접속에 따른 리시브스레드생성 \n\n", id);
 	int retval;
 	int iCurrPacketSize = 0;
 	int iStoredPacketSize = 0;
@@ -170,6 +169,7 @@ void CNetwork::recvThread(int id)
 
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
+			Logout(id);
 			break;
 		}
 
@@ -220,7 +220,6 @@ void CNetwork::packetProcess(int id)
 	HEADER *pHeader = (HEADER*)m_vpClientInfo[id]->m_saveBuf;
 	switch (pHeader->packetID)
 	{
-		printf("id %d에게 패킷을 받았습니다. 타입:%d \n", id, pHeader->packetID);
 	case PAK_LOGIN:
 		Login(id);
 		break;
@@ -294,7 +293,7 @@ bool CNetwork::Logout(int id)
 			delete m_vpClientInfo[i];
 			m_vpClientInfo[i] = nullptr;
 		}
-		printf("모든 플레이어가 접속을 종료! \n");
+		printf("-> 모든 플레이어가 접속을 종료! \n\n");
 		return true;
 	}
 
@@ -315,15 +314,13 @@ bool CNetwork::Logout(int id)
 
 
 	printf("-> %d번 클라이언트 종료 \n", id);
-	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n\n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
 
 bool CNetwork::Ready(int id)
 {
-	printf("레디함수시작\n");
-
 	m_vpClientInfo[id]->m_bReady = true;
 	++m_nReadyCount;
 
@@ -342,7 +339,7 @@ bool CNetwork::Ready(int id)
 	}
 
 	printf("-> %d번 클라이언트 준비 \n", id);
-	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n\n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
 		return Start();
@@ -373,7 +370,7 @@ bool CNetwork::Start()
 		}
 	}
 
-	printf("게임 시작! \n");
+	printf("-> 게임 시작! \n\n");
 	return true;
 }
 
@@ -417,6 +414,52 @@ bool CNetwork::Key(int id, void *buf) {
 	return true;
 }
 
+bool CNetwork::Hurt(int id)
+{
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_EVENT *pData = (SC_EVENT*)sendData;
+	pData->header.packetSize = sizeof(SC_EVENT);
+	pData->header.packetID = PAK_HURT;
+	pData->ID = id;
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->m_sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->m_nID);
+		}
+	}
+
+	return true;
+}
+
+bool CNetwork::Sync()
+{
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_SYNC *pData = (SC_SYNC*)sendData;
+	pData->header.packetSize = sizeof(SC_SYNC);
+	pData->header.packetID = PAK_SYNC;
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		pData->sheep_ID[i] = m_vpClientInfo[i]->m_nID;
+		pData->sheep_pos[i].x = m_vpClientInfo[i]->m_pSheep->x;
+		pData->sheep_pos[i].y = m_vpClientInfo[i]->m_pSheep->y;
+		pData->sheep_pos[i].z = m_vpClientInfo[i]->m_pSheep->z;
+	}
+
+	for (int i = 0; i < MOVING_OB_CNT; ++i) {
+		pData->object_pos[i].x = m_vpMovingObject[i]->x;
+		pData->object_pos[i].y = m_vpMovingObject[i]->y;
+		pData->object_pos[i].z = m_vpMovingObject[i]->z;
+	}
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->m_sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->m_nID);
+		}
+	}
+
+	return true;
+}
+
 
 void CNetwork::transmitProcess(void* buf, int id)
 {
@@ -431,7 +474,7 @@ void CNetwork::transmitProcess(void* buf, int id)
 		int err_code = WSAGetLastError();
 		if (WSA_IO_PENDING != err_code) {
 			err_display("[CNetworkManager::sendPacket()] WSASend");
-			printf("Error Code: %d \n", WSAGetLastError());
+			Logout(id);
 			return;
 		}
 	}
@@ -466,7 +509,6 @@ void CNetwork::updateServer()
 	float frameTime = clock() - m_fCurrentTime;
 	m_fCurrentTime = clock();
 	m_fAccumulator += frameTime;
-	//printf("FPS:%f \n", 1000.0 / frameTime);
 
 	while (m_fAccumulator >= FIXED_FRAME_TIME) {
 
@@ -505,7 +547,7 @@ void CNetwork::updateServer()
 
 			if (m_pSheeps[i]->isHurted) {
 				m_pSheeps[i]->isHurted = false;
-				//Hurt(m_vpClientInfo[i]->m_nID);
+				Hurt(m_vpClientInfo[i]->m_nID);
 			}
 			switch (m_pSheeps[i]->iGameMode) {
 			case PLAY_MODE:
@@ -525,7 +567,7 @@ void CNetwork::updateServer()
 		m_fSyncTime += FIXED_FRAME_TIME;
 		if (MILISEC_PER_SYNC < m_fSyncTime) {
 			m_fSyncTime -= MILISEC_PER_SYNC;
-			//Sync();
+			Sync();
 		}
 	}
 }

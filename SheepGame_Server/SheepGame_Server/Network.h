@@ -57,6 +57,10 @@ public:
 	bool Start();
 	bool Key(int id, void *buf);
 
+	bool Hurt(int id);
+
+	bool Sync();
+
 	void updateServer();
 	void CreateWorld();
 	void DestroyWorld();

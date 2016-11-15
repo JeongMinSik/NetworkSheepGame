@@ -143,7 +143,7 @@ bool CNetwork::acceptThread()
 		// !! (추가필요) 해당 플레이어에게 그 사실을 알려야 함
 		if (m_bPlaying || m_nPlayerCount >= MAX_PLAYER_CNT) {
 			closesocket(clientSock);
-			cout << "새로운 클라의 접속을 차단했습니다." << endl;
+			printf("새로운 클라의 접속을 차단했습니다.\n\n");
 			continue;
 		}
 
@@ -274,7 +274,6 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	HEADER *pHeader = (HEADER*)buf;
 	switch (pHeader->packetID)
 	{
-		printf("id %d에게 패킷을 받았습니다. 타입:%d \n", id, pHeader->packetID);
 	case PAK_LOGIN:
 		issuccess = Login(id);
 		break;
@@ -322,7 +321,7 @@ bool CNetwork::Login(int id)
 	}
 
 	printf("-> %d번 클라이언트 접속 \n", id);
-	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n\n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
@@ -353,7 +352,7 @@ bool CNetwork::Logout(int id)
 			delete m_vpClientInfo[i];
 			m_vpClientInfo[i] = nullptr;
 		}
-		printf("모든 플레이어가 접속을 종료! \n");
+		printf("-> 모든 플레이어가 접속을 종료! \n\n");
 		return true;
 	}
 
@@ -374,7 +373,7 @@ bool CNetwork::Logout(int id)
 
 
 	printf("-> %d번 클라이언트 종료 \n", id);
-	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n\n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	return true;
 }
@@ -404,10 +403,9 @@ bool CNetwork::Ready(int id)
 	}
 
 	printf("-> %d번 클라이언트 준비 \n", id);
-	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
+	printf("-> 준비상태( %d / %d ), 총 접속자: %d \n\n", m_nReadyCount, MAX_PLAYER_CNT, m_nPlayerCount);
 
 	if (m_nReadyCount >= MAX_PLAYER_CNT) {
-		printf("스타트함수접속전\n");
 		return CNetwork::Start();
 	}
 
@@ -416,7 +414,6 @@ bool CNetwork::Ready(int id)
 
 bool CNetwork::Start()
 {
-	printf("1\n");
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_START *pData = (SC_START*)sendData;
 	pData->header.packetSize = sizeof(SC_START);
@@ -425,16 +422,10 @@ bool CNetwork::Start()
 		pData->ID_LIST[i] = m_vpClientInfo[i]->nID;
 	}
 
-
-	printf("2\n");
-
 	if (ob_num > 0) {
 		DestroyWorld();
 	}
 	CreateWorld();
-
-
-	printf("3\n");
 
 	m_bPlaying = true;
 	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
@@ -443,7 +434,7 @@ bool CNetwork::Start()
 		}
 	}
 
-	printf("게임 시작! \n");
+	printf("-> 게임 시작! \n\n");
 	return true;
 }
 
@@ -457,7 +448,7 @@ bool CNetwork::Finish(int id) {
 	m_nReadyCount = 0;
 	m_bPlaying = false;
 
-	printf("승자는 %d번 클라! \n",id);
+	printf("-> 승자는 %d번 클라! \n",id);
 
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
 	SC_EVENT *pData = (SC_EVENT*)sendData;
