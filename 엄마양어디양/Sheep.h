@@ -4,9 +4,8 @@
 struct SoundPackage;
 struct Ground; 
 struct Sheep : public Object {
-	bool state[8]; // 이동상태
+	BOOL state[8]; // 이동상태
 	float jump_height;		// 점프력
-	float minus_height; //감소 점프력
 	float x_additional_speed, y_additional_speed, z_additional_speed;	// 추가 이동속도
 	float org_y; // 점프시 y 위치
 	int last_view; //마지막 바라본 방향(각도)

@@ -271,6 +271,7 @@ void CNetwork::packetProcess()
 	{
 		SC_SYNC sync;
 		memcpy(&sync, m_saveBuf, sizeof(SC_SYNC));
+	
 		// 양들 동기화
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
@@ -279,10 +280,12 @@ void CNetwork::packetProcess()
 					m_Players[i].m_pSheep->y = sync.sheep_pos[j].y;
 					m_Players[i].m_pSheep->z = sync.sheep_pos[j].z;
 					m_Players[i].m_pSheep->pCamera->x = sync.sheep_pos[j].x;
+					memcpy(m_Players[i].m_pSheep->state, sync.state[j], sizeof(sync.state[j]));
 					break;
 				}
 			}
 		}
+
 		// 동적객체 동기화
 		for (int i = 0; i < MOVING_OB_CNT; ++i) {
 			m_vpMovingObject[i]->x = sync.object_pos[i].x;

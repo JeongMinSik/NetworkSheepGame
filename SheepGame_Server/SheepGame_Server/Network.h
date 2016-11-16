@@ -56,9 +56,8 @@ public:
 	bool Ready(int id);
 	bool Start();
 	bool Key(int id, void *buf);
-
 	bool Hurt(int id);
-
+	bool Finish(int id);
 	bool Sync();
 
 	void updateServer();

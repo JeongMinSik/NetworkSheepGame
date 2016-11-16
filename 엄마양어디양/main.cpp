@@ -139,7 +139,7 @@ void SetTextures()
 		else if (i == ESC_BUTTON)
 		{
 			pBytes = LoadDIBitmap("./RESOURCE/esc(96x96).bmp", &info);
-			glTexImage2D(GL_TEXTURE_2D, 0, 3, 96, 96, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, pBytes);
+			glTexImage2D(GL_TEXTURE_2D, 0, 3, 0, 0, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, pBytes);
 		}
 		else if (i == MENU_0)
 		{

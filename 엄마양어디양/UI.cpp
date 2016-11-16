@@ -297,26 +297,6 @@ void Ui::draw( Sheep* sheep )
 				glPopMatrix();
 			}
 			glPopMatrix();
-
-			//ESC
-			glPushMatrix();
-			glColor3f( 1, 1, 1 );
-			int x = 140, y = 140, z = -500;
-			int width = 50, height = 50;
-			glEnable( GL_TEXTURE_2D );
-			glBindTexture( GL_TEXTURE_2D, pTextures[ESC_BUTTON] );
-			glBegin( GL_QUADS );
-			glTexCoord2i( 0, 0 );
-			glVertex3f( x, y, z );
-			glTexCoord2i( 1, 0 );
-			glVertex3f( x + width, y, z );
-			glTexCoord2i( 1, 1 );
-			glVertex3f( x + width, y + height, z );
-			glTexCoord2i( 0, 1 );
-			glVertex3f( x, y + height, z );
-			glEnd();
-			glDisable( GL_TEXTURE_2D );
-			glPopMatrix();
 		}
 
 		// ¸Þ´º - PAUSE_MODE

@@ -232,9 +232,6 @@ void CNetwork::packetProcess(int id)
 	case PAK_KEY_DOWN: case PAK_KEY_UP:
 		Key(id, m_vpClientInfo[id]->m_saveBuf);
 		break;
-	case PAK_ENDING:
-		//Finish(id);
-		break;
 	default:
 		printf("알려지지 않은 패킷ID \n");
 		break;
@@ -431,6 +428,33 @@ bool CNetwork::Hurt(int id)
 	return true;
 }
 
+bool CNetwork::Finish(int id) {
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->m_sock) {
+			m_vpClientInfo[i]->m_bReady = false;
+		}
+	}
+	m_nReadyCount = 0;
+	m_bPlaying = false;
+
+	printf("-> 승자는 %d번 클라! \n", id);
+
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_EVENT *pData = (SC_EVENT*)sendData;
+	pData->header.packetSize = sizeof(SC_EVENT);
+	pData->header.packetID = PAK_ENDING;
+	pData->ID = id;
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->m_sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->m_nID);
+		}
+	}
+
+	return true;
+}
+
 bool CNetwork::Sync()
 {
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
@@ -443,6 +467,7 @@ bool CNetwork::Sync()
 		pData->sheep_pos[i].x = m_vpClientInfo[i]->m_pSheep->x;
 		pData->sheep_pos[i].y = m_vpClientInfo[i]->m_pSheep->y;
 		pData->sheep_pos[i].z = m_vpClientInfo[i]->m_pSheep->z;
+		memcpy(pData->state[i], m_vpClientInfo[i]->m_pSheep->state, sizeof(pData->state[i]));
 	}
 
 	for (int i = 0; i < MOVING_OB_CNT; ++i) {
@@ -471,12 +496,9 @@ void CNetwork::transmitProcess(void* buf, int id)
 	int retval = send(clientSocket, (char*)buf, packetSize, 0);
 	
 	if (retval == SOCKET_ERROR) {
-		int err_code = WSAGetLastError();
-		if (WSA_IO_PENDING != err_code) {
-			err_display("[CNetworkManager::sendPacket()] WSASend");
-			Logout(id);
-			return;
-		}
+		err_display("[CNetworkManager::sendPacket()] WSASend");
+		Logout(id);
+		return;
 	}
 }
 
@@ -557,7 +579,7 @@ void CNetwork::updateServer()
 				m_pSheeps[i]->dead_update(frameTime);
 				break;
 			case ENDING_MODE:
-				//Finish(m_vpClientInfo[i]->m_nID);
+				Finish(m_vpClientInfo[i]->m_nID);
 				break;
 			}
 		}

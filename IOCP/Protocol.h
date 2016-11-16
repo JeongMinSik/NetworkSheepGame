@@ -57,10 +57,11 @@ struct SC_KEY {
 };
 
 struct SC_SYNC {
-	HEADER header;
+	HEADER	header;
 	BYTE	sheep_ID[MAX_PLAYER_CNT];
 	POINT3D sheep_pos[MAX_PLAYER_CNT];
 	POINT3D object_pos[MOVING_OB_CNT];
+	BOOL	state[MAX_PLAYER_CNT][8];
 };
 
 struct SC_EVENT {

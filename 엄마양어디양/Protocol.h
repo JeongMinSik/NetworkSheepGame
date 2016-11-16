@@ -30,6 +30,14 @@
 
 struct POINT3D {
 	FLOAT	x, y, z;
+	POINT3D() = default;
+	POINT3D(float x, float y, float z) : x(x), y(y), z(z) {};
+	POINT3D& operator=(POINT3D& rPoint) {
+		this->x = rPoint.x;
+		this->y = rPoint.y;
+		this->z = rPoint.z;
+		return *this;
+	}
 };
 
 struct HEADER
@@ -57,10 +65,11 @@ struct SC_KEY {
 };
 
 struct SC_SYNC {
-	HEADER header;
+	HEADER	header;
 	BYTE	sheep_ID[MAX_PLAYER_CNT];
 	POINT3D sheep_pos[MAX_PLAYER_CNT];
 	POINT3D object_pos[MOVING_OB_CNT];
+	BOOL	state[MAX_PLAYER_CNT][8];
 };
 
 struct SC_EVENT {

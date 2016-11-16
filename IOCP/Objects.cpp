@@ -67,7 +67,6 @@ bool Object::AABB(const Object* other)
 
 Sheep::Sheep(int t, int x, int y, int z, float sp) : Object(t, x, y, z, 45, 30, 35, sp) {
 	jump_height = 100;
-	minus_height = 0;
 	x_additional_speed = y_additional_speed = z_additional_speed = 0;
 	last_view = 0;
 	life = 3;
@@ -167,8 +166,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 		// 추가 이동속도 변경
 		if (obstacles[stading_index]->state_y == JUMP_UP_STATE)
 			y_additional_speed = obstacles[stading_index]->speed;
-		else if (obstacles[stading_index]->state_y == JUMP_DOWN_STATE)
-			minus_height = jump_height *0.5;
+
 		if (obstacles[stading_index]->state_x == RIGHT_STATE && state[LEFT_STATE])
 			x_additional_speed = obstacles[stading_index]->speed;
 		else if (obstacles[stading_index]->state_x == LEFT_STATE && state[RIGHT_STATE])
@@ -219,7 +217,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 		if (state[JUMP_UP_STATE] == false && state[JUMP_DOWN_STATE] == false && y > 0)
 		{
 			//추가속도 및 점프감소력 초기화
-			y_additional_speed = minus_height = 0;
+			y_additional_speed = 0;
 			state[GRAVITY] = true;
 			y -= speed*1.2*frameTime;
 			if (y <= 0)
@@ -429,7 +427,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 	if (state[JUMP_UP_STATE])
 	{
 		y += (speed + y_additional_speed)*frameTime;
-		if (y > org_y + jump_height - minus_height)
+		if (y > org_y + jump_height)
 		{
 			state[JUMP_UP_STATE] = false;
 			state[JUMP_DOWN_STATE] = true;
@@ -476,7 +474,7 @@ void Sheep::update2(const Ground* ground, Object* obstacles[], float frameTime)
 	else if (state[JUMP_DOWN_STATE])
 	{
 		//추가속도 및 점프감소력 초기화
-		y_additional_speed = minus_height = 0;
+		y_additional_speed = 0;
 		y -= speed*1.2*frameTime;
 		if (y < 0)
 		{

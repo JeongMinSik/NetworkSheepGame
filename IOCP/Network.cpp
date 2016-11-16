@@ -286,9 +286,6 @@ bool CNetwork::packetProcess(CHAR* buf, int id)
 	case PAK_KEY_DOWN: case PAK_KEY_UP:
 		issuccess = Key(id, buf);
 		break;
-	case PAK_ENDING:
-		issuccess = Finish(id);
-		break;
 	default:
 		issuccess = false;
 		printf("알려지지 않은 패킷ID \n");
@@ -518,6 +515,7 @@ bool CNetwork::Sync()
 		pData->sheep_pos[i].x = m_vpClientInfo[i]->pSheep->x;
 		pData->sheep_pos[i].y = m_vpClientInfo[i]->pSheep->y;
 		pData->sheep_pos[i].z = m_vpClientInfo[i]->pSheep->z;
+		memcpy(pData->state[i], m_vpClientInfo[i]->pSheep->state, sizeof(pData->state[i]));
 	}
 
 	for (int i = 0; i < MOVING_OB_CNT; ++i) {
