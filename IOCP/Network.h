@@ -88,6 +88,7 @@ public:
 	bool Key(int id, void *buf);
 	bool Sync();
 	bool Hurt(int id);
+	bool GameOver();
 
 	//아이피주소얻기
 	void printHostInfo();

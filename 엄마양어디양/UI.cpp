@@ -136,8 +136,6 @@ void Ui::special_key( int key )
 				selected_menu = ( selected_menu + 1 ) % 3;
 			}
 		}
-		//추가필요
-		//else if ((key_delay[1] == 0) && (sheep->killed || ending_screen == 3))
 		else if( ( key_delay[1] == 0 ) && ending_screen == 3 )
 		{
 			key_delay[1] = 3;
@@ -269,8 +267,31 @@ void Ui::draw( Sheep* sheep )
 				glPopMatrix();
 			}
 		}
+		else if (*pGameMode == GAME_OVER)
+		{
+			ending_screen = 3;
+			glPushMatrix();
+			glColor3f(1, 1, 1);
+			int x = -70, y = -130, z = -500;
+			int width = 155, height = 250;
+			glEnable(GL_TEXTURE_2D);
+			if (selected_menu == 1) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_0]); }
+			else if (selected_menu == 2) { glBindTexture(GL_TEXTURE_2D, pTextures[DEAD_1]); }
+			glBegin(GL_QUADS);
+			glTexCoord2i(0, 0);
+			glVertex3f(x, y, z);
+			glTexCoord2i(1, 0);
+			glVertex3f(x + width, y, z);
+			glTexCoord2i(1, 1);
+			glVertex3f(x + width, y + height, z);
+			glTexCoord2i(0, 1);
+			glVertex3f(x, y + height, z);
+			glEnd();
+			glDisable(GL_TEXTURE_2D);
+			glPopMatrix();
+		}
 
-		if( *pGameMode == PLAY_MODE )
+		else if( *pGameMode == PLAY_MODE )
 		{
 			// 목숨
 			glPushMatrix();

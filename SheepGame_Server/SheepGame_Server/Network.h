@@ -59,6 +59,7 @@ public:
 	bool Hurt(int id);
 	bool Finish(int id);
 	bool Sync();
+	bool GameOver();
 
 	void updateServer();
 	void CreateWorld();

@@ -16,6 +16,7 @@
 #define		PAK_ENDING				7
 #define		PAK_SYNC				8
 #define		PAK_HURT				9
+#define		PAK_GAMEOVER			10
 
 // 단위는 밀리세컨드, FPS 60
 #define FIXED_FRAME_TIME			17		// 최저프레임시간

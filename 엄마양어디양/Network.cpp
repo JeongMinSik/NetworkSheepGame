@@ -37,8 +37,7 @@ void CNetwork::err_display(char * msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&lpMsgBuf, 0, NULL);
-	//MessageBox(NULL, (LPCTSTR)lpMsgBuf, (LPCWSTR)msg, MB_ICONERROR);
-	printf("[%s] %s", msg, (char *)lpMsgBuf);
+	printf("[%s] %s", msg, (char*)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
 
@@ -132,7 +131,7 @@ void CNetwork::recvThreadFunc()
 		retval = recv( m_socket, recvBuf, sizeof( recvBuf ), 0 );
 
 		if( retval == SOCKET_ERROR ) {
-			err_display( "recv()" );
+			err_quit( "recv()" );
 			break;
 		}
 
@@ -330,6 +329,15 @@ void CNetwork::packetProcess()
 			printf("%d번 아이디가 승리했습니다. \n",ending.ID);
 		}
 
+		break;
+	}
+	case PAK_GAMEOVER:
+	{
+		*m_piGameMode = GAME_OVER;
+		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+			m_Players[i].m_pSheep->ending_finished = true;
+		}
+		printf("모든 플레이어가 게임오버! \n");
 		break;
 	}
 	default:

@@ -326,7 +326,10 @@ bool CNetwork::Login(int id)
 bool CNetwork::Logout(int id)
 {
 	m_vpClientInfo[id]->socketLock.lock();
-	if (m_vpClientInfo[id]== NULL || m_vpClientInfo[id]->sock == NULL) return true;
+	if (m_vpClientInfo[id] == NULL || m_vpClientInfo[id]->sock == NULL) {
+		m_vpClientInfo[id]->socketLock.unlock();
+		return true;
+	}
 
 	// 소켓을 닫는다.
 	shutdown(m_vpClientInfo[id]->sock, SD_SEND);
@@ -334,24 +337,31 @@ bool CNetwork::Logout(int id)
 	m_vpClientInfo[id]->sock = NULL;
 	m_nPlayerCount--;
 
-	// 레디상태 해제
-	if (m_vpClientInfo[id]->bReady) {
-		m_vpClientInfo[id]->bReady = false;
-		--m_nReadyCount;
-	}
-
-	m_vpClientInfo[id]->socketLock.unlock();
-
-	// 플레이종료
-	if (m_nPlayerCount == 0) {
-		m_bPlaying = false;
-		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
-			delete m_vpClientInfo[i];
-			m_vpClientInfo[i] = nullptr;
+	if (m_bPlaying) {
+		// 모든플레이어종료
+		if (m_nPlayerCount == 0) {
+			m_bPlaying = false;
+			m_nReadyCount = 0;
+			m_vpClientInfo[id]->socketLock.unlock();
+			for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+				delete m_vpClientInfo[i];
+				m_vpClientInfo[i] = nullptr;
+			}
+			printf("-> 모든 플레이어가 접속을 종료! \n\n");
+			return true;
 		}
-		printf("-> 모든 플레이어가 접속을 종료! \n\n");
-		return true;
 	}
+	else {
+		// 레디상태 해제
+		if (m_vpClientInfo[id]->bReady) {
+			m_vpClientInfo[id]->bReady = false;
+			--m_nReadyCount;
+		}
+		m_vpClientInfo[id]->socketLock.unlock();
+		delete m_vpClientInfo[id];
+		m_vpClientInfo[id] = nullptr;
+	}
+
 
 	// 플레이어들에게 접속종료 사실을 알린다.
 	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
@@ -550,6 +560,32 @@ bool CNetwork::Hurt(int id)
 	return true;
 }
 
+bool CNetwork::GameOver()
+{
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			m_vpClientInfo[i]->bReady = false;
+		}
+	}
+	m_nReadyCount = 0;
+	m_bPlaying = false;
+
+	printf("-> 모든 플레이어 게임오버 \n");
+
+	UCHAR sendData[MAX_PACKET_SIZE] = { 0 };
+	SC_EVENT *pData = (SC_EVENT*)sendData;
+	pData->header.packetSize = sizeof(SC_EVENT);
+	pData->header.packetID = PAK_GAMEOVER;
+
+	for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
+		if (m_vpClientInfo[i] && m_vpClientInfo[i]->sock) {
+			transmitProcess(sendData, m_vpClientInfo[i]->nID);
+		}
+	}
+
+	return true;
+}
+
 void CNetwork::transmitProcess(void *buf, int id)
 {
 	SOCKETINFO *psock = new SOCKETINFO;
@@ -701,6 +737,7 @@ void CNetwork::updateServer()
 		};
 
 		//양 업데이트
+		int deathCount = 0;
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 
 			if (m_pSheeps[i]->isHurted) {
@@ -712,12 +749,21 @@ void CNetwork::updateServer()
 				m_pSheeps[i]->update2(ground[0], obstacles, frameTime);
 				break;
 			case GAME_OVER:
-				m_pSheeps[i]->dead_update(frameTime);
+				if (!m_pSheeps[i]->killed) {
+					m_pSheeps[i]->dead_update(frameTime);
+				}
+				else {
+					deathCount++;
+				}
 				break;
 			case ENDING_MODE:
 				Finish(m_vpClientInfo[i]->nID);
 				break;
 			}
+		}
+
+		if (deathCount >= MAX_PLAYER_CNT) {
+			GameOver();
 		}
 
 		m_fAccumulator -= FIXED_FRAME_TIME;
