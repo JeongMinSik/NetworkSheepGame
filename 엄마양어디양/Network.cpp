@@ -60,6 +60,11 @@ void CNetwork::connectServer()
 		err_quit("윈속 초기화 실패");
 
 	m_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+	// 네이글알고리즘
+	BOOL optval = TRUE;
+	setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&optval, sizeof(optval));
+
 	if (m_socket == INVALID_SOCKET) err_quit("socket()");
 
 	// connect()

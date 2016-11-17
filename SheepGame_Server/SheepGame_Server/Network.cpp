@@ -85,6 +85,12 @@ void CNetwork::startServer()
 void CNetwork::acceptThread()
 {
 	m_listenSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	
+	// 네이글알고리즘
+	BOOL optval = TRUE;
+	setsockopt(m_listenSock, IPPROTO_TCP, TCP_NODELAY, (char*)&optval, sizeof(optval));
+
+
 	if (m_listenSock == INVALID_SOCKET) CNetwork::err_quit("WSASocket() error!");
 
 	int nSendSize = 0;

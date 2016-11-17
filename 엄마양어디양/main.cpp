@@ -444,11 +444,10 @@ GLvoid updateScene(int value)
 					}
 					else {
 						ui->ending_screen = LOSE;
-
 					}
 					FMOD_Channel_Stop(pSoundPackage->Channel[GAME_BGM]);
 					FMOD_System_PlaySound(pSoundPackage->System, FMOD_CHANNEL_FREE, pSoundPackage->Sound[CLEAR_BGM], 0, &pSoundPackage->Channel[CLEAR_BGM]);
-					Game_Mode = ENDING_MODE;;
+					Game_Mode = ENDING_MODE;
 					mainSheep = NetworkManager.m_Players[i].m_pSheep;
 					for (int j = 0; j < MAX_PLAYER_CNT; ++j) {
 						if (i == j) continue;
