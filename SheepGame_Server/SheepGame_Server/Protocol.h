@@ -20,7 +20,7 @@
 
 // 단위는 밀리세컨드, FPS 60
 #define FIXED_FRAME_TIME			17		// 최저프레임시간
-#define MILISEC_PER_SYNC			33		
+#define MILISEC_PER_SYNC			22		
 
 #pragma pack(push, 1)																				 
 

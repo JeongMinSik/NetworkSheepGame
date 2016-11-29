@@ -96,7 +96,7 @@ void CNetwork::acceptThread()
 	int nIntSize = sizeof(int);
 	nSendSize = 1048576;
 	setsockopt(m_listenSock, SOL_SOCKET, SO_SNDBUF, (char*)&nSendSize, nIntSize);
-	printf("송신 버퍼의 크기: %d bytes \n", nSendSize);
+	//printf("송신 버퍼의 크기: %d bytes \n", nSendSize);
 
 	//주소 bind()
 	sockaddr_in	listenSockAddr;
@@ -400,7 +400,7 @@ bool CNetwork::Key(int id, void *buf) {
 	}
 
 	if (pData->header.packetID == PAK_KEY_DOWN) {
-		printf("%d번클라가 %d키를 Down! \n", id, pData->key);
+		//printf("%d번클라가 %d키를 Down! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->m_nID == id) {
 				m_vpClientInfo[i]->m_pSheep->special_key(pKey->key, obstacles);
@@ -410,7 +410,7 @@ bool CNetwork::Key(int id, void *buf) {
 		}
 	}
 	else if (pData->header.packetID == PAK_KEY_UP) {
-		printf("%d번클라가 %d키를 Up! \n", id, pData->key);
+		//printf("%d번클라가 %d키를 Up! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->m_nID == id) {
 				m_vpClientInfo[i]->m_pSheep->special_key_up(pKey->key);

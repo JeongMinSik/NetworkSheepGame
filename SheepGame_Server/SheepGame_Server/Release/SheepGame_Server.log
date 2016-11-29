@@ -1,4 +1,4 @@
-﻿빌드 시작: 2016-11-17 오후 7:12:13
+﻿빌드 시작: 2016-11-22 오후 12:02:11
      1>2 노드의 "D:\3_2\넷겜플\텀프로젝트\SheepGame_Server\SheepGame_Server\SheepGame_Server.vcxproj" 프로젝트(Build 대상)입니다.
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Release\\" /Fd"Release\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt Network.cpp Objects.cpp main.cpp
@@ -47,13 +47,13 @@
          Release\Network.obj
          Release\Objects.obj
          코드를 생성하고 있습니다.
-         0 of 535 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
+         6 of 535 functions ( 1.1%) were compiled, the rest were copied from previous compilation.
            0 functions were new in current compilation
-           0 functions had inline decision re-evaluated but remain unchanged
+           12 functions had inline decision re-evaluated but remain unchanged
          코드를 생성했습니다.
          SheepGame_Server.vcxproj -> D:\3_2\넷겜플\텀프로젝트\SheepGame_Server\Release\SheepGame_Server.exe
      1>"D:\3_2\넷겜플\텀프로젝트\SheepGame_Server\SheepGame_Server\SheepGame_Server.vcxproj" 프로젝트를 빌드했습니다(Build 대상).
 
 빌드했습니다.
 
-경과 시간: 00:00:06.15
+경과 시간: 00:00:04.07

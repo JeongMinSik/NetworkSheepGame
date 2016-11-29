@@ -92,7 +92,13 @@ void CNetwork::printHostInfo() {
 bool CNetwork::acceptThread()
 {
 	m_listenSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	
 	if (m_listenSock == INVALID_SOCKET) CNetwork::err_quit("WSASocket() error!");
+
+	
+	// 네이글알고리즘
+	BOOL optval = TRUE;
+	setsockopt(m_listenSock, IPPROTO_TCP, TCP_NODELAY, (char*)&optval, sizeof(optval));
 
 	int nSendSize = 0;
 	int nIntSize = sizeof(int);
@@ -490,7 +496,7 @@ bool CNetwork::Key(int id, void *buf) {
 	}
 
 	if (pData->header.packetID == PAK_KEY_DOWN) {
-		printf("%d번클라가 %d키를 Down! \n", id, pData->key);
+		//printf("%d번클라가 %d키를 Down! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
 				m_vpClientInfo[i]->pSheep->special_key(pKey->key,obstacles);
@@ -500,7 +506,7 @@ bool CNetwork::Key(int id, void *buf) {
 		}
 	}
 	else if (pData->header.packetID == PAK_KEY_UP) {
-		printf("%d번클라가 %d키를 Up! \n", id, pData->key);
+		//printf("%d번클라가 %d키를 Up! \n", id, pData->key);
 		for (int i = 0; i < MAX_PLAYER_CNT; ++i) {
 			if (m_vpClientInfo[i]->nID == id) {
 				m_vpClientInfo[i]->pSheep->special_key_up(pKey->key);
