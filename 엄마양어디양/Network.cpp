@@ -51,6 +51,8 @@ void CNetwork::connectServer()
 		strcpy_s( strServerAddr, sizeof( strServerAddr ), "127.0.0.1");
 	}
 
+	printf("플레이 필요인원 수는 %d명 입니다. \n" ,MAX_PLAYER_CNT);
+
 	int retval;
 
 	// 윈속 초기화

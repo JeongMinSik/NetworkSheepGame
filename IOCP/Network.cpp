@@ -65,6 +65,8 @@ void CNetwork::startServer()
 	cout << "startServer()" << endl;
 
 	printHostInfo();
+
+	printf("플레이 필요인원 수는 %d명 입니다. \n", MAX_PLAYER_CNT);
 }
 void CNetwork::endServer()
 {
